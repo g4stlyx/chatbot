@@ -1,0 +1,779 @@
+{
+  "project": {
+    "name": "MCP Server - Spring Boot Edition",
+    "description": "Enterprise-ready Model Context Protocol Server with comprehensive user management",
+    "version": "2.0.0",
+    "technology_stack": {
+      "backend": "Java Spring Boot 3.2+",
+      "java_version": "17",
+      "build_tool": "Maven",
+      "primary_database": "MySQL 8.0+",
+      "cache_database": "Redis 7.0+",
+      "authentication": "JWT with Spring Security",
+      "documentation": "OpenAPI 3.0 + Swagger UI",
+      "containerization": "Docker + Kubernetes",
+      "monitoring": "Spring Actuator + Micrometer"
+    }
+  },
+  
+  "architecture": {
+    "pattern": "Layered Architecture with Clean Architecture principles",
+    "layers": {
+      "presentation": "REST Controllers + Exception Handlers",
+      "business": "Service Layer with Business Logic",
+      "persistence": "Repository Pattern + JPA Entities",
+      "infrastructure": "Configuration + Security + Monitoring"
+    },
+    "database_strategy": {
+      "primary_storage": "MySQL for persistent data (users, sessions, messages)",
+      "cache_layer": "Redis for session management, rate limiting, and performance optimization",
+      "benefits": [
+        "Data persistence and reliability",
+        "High-performance caching",
+        "Scalable session management",
+        "Reduced database load"
+      ]
+    }
+  },
+  
+  "core_features": {
+    "user_management": {
+      "registration": "Email-based registration with verification",
+      "authentication": "JWT-based with refresh tokens",
+      "password_security": "Argon2id + Salt + Pepper hashing",
+      "profile_management": "Full CRUD operations for user profiles",
+      "account_recovery": "Forgot password with email tokens"
+    },
+    
+    "admin_system": {
+      "hierarchical_roles": {
+        "super_admin": {"level": 0, "permissions": "Full system access"},
+        "admin": {"level": 1, "permissions": "User management, system configuration"},
+        "moderator": {"level": 2, "permissions": "Content moderation, user support"}
+      },
+      "admin_features": [
+        "User management (activate/deactivate)",
+        "Session monitoring and management",
+        "System metrics and analytics",
+        "Content moderation tools"
+      ]
+    },
+    
+    "chat_system": {
+      "session_management": "Multi-session support per user",
+      "ai_integration": "OpenAI GPT models with fallback support",
+      "message_persistence": "Full conversation history in MySQL",
+      "real_time_caching": "Active sessions cached in Redis",
+      "context_management": "Intelligent context summarization"
+    },
+    
+    "security_features": {
+      "authentication": "JWT with RS256 signing",
+      "authorization": "Role-based access control (RBAC)",
+      "rate_limiting": "Per-user and per-IP rate limiting",
+      "input_validation": "Comprehensive request validation",
+      "password_policy": "Strong password requirements",
+      "session_security": "Secure session token management"
+    },
+    
+    "monitoring_observability": {
+      "health_checks": "Database, Redis, AI service connectivity",
+      "custom_metrics": "Chat requests, response times, active users",
+      "logging": "Structured logging with correlation IDs",
+      "alerting": "Integration-ready for monitoring systems",
+      "performance_tracking": "API performance and resource usage"
+    }
+  },
+  
+  "api_specification": {
+    "base_url": "https://api.mcpserver.com",
+    "version": "v1",
+    "authentication": "Bearer JWT Token",
+    
+    "endpoints": {
+      "authentication": {
+        "POST /api/v1/auth/register": {
+          "description": "User registration with email verification",
+          "request": {
+            "username": "string (3-50 chars, unique)",
+            "email": "string (valid email, unique)",
+            "password": "string (8+ chars, complexity rules)",
+            "firstName": "string (optional)",
+            "lastName": "string (optional)"
+          },
+          "response": {
+            "success": "UserResponse + JWT tokens",
+            "error": "ValidationError | EmailAlreadyExists | UsernameAlreadyExists"
+          }
+        },
+        
+        "POST /api/v1/auth/login": {
+          "description": "User authentication with rate limiting",
+          "request": {
+            "username": "string (email or username)",
+            "password": "string"
+          },
+          "response": {
+            "success": "JWT tokens + user profile",
+            "error": "InvalidCredentials | AccountLocked | EmailNotVerified"
+          }
+        },
+        
+        "POST /api/v1/auth/forgot-password": {
+          "request": {"email": "string"},
+          "response": "Password reset email sent"
+        },
+        
+        "POST /api/v1/auth/reset-password": {
+          "request": {"token": "string", "newPassword": "string"},
+          "response": "Password successfully reset"
+        }
+      },
+      
+      "user_management": {
+        "GET /api/v1/users/profile": {
+          "security": "JWT Required",
+          "response": "Complete user profile"
+        },
+        
+        "PUT /api/v1/users/profile": {
+          "security": "JWT Required",
+          "request": "Partial user profile update",
+          "response": "Updated user profile"
+        },
+        
+        "PUT /api/v1/users/password": {
+          "security": "JWT Required",
+          "request": {"currentPassword": "string", "newPassword": "string"},
+          "response": "Password change confirmation"
+        }
+      },
+      
+      "chat_sessions": {
+        "POST /api/v1/sessions": {
+          "security": "JWT Required",
+          "request": {
+            "title": "string (optional)",
+            "model": "string (default: gpt-3.5-turbo)"
+          },
+          "response": "New session created with session ID"
+        },
+        
+        "GET /api/v1/sessions": {
+          "security": "JWT Required",
+          "query_params": ["page", "size", "status"],
+          "response": "Paginated list of user sessions"
+        },
+        
+        "POST /api/v1/sessions/{sessionId}/chat": {
+          "security": "JWT Required",
+          "request": {
+            "message": "string (user message)",
+            "model": "string (optional, override session model)"
+          },
+          "response": {
+            "response": "string (AI response)",
+            "messageId": "long",
+            "tokenUsage": "integer",
+            "timestamp": "datetime"
+          }
+        },
+        
+        "GET /api/v1/sessions/{sessionId}/messages": {
+          "security": "JWT Required",
+          "query_params": ["page", "size", "since"],
+          "response": "Paginated message history"
+        }
+      },
+      
+      "admin_endpoints": {
+        "user_management": {
+          "GET /api/v1/admin/users": {
+            "security": "Admin JWT (Level <= 1)",
+            "query_params": ["page", "size", "status", "search", "sort"],
+            "response": "Paginated user list with full details"
+          },
+          
+          "GET /api/v1/admin/users/{userId}": {
+            "security": "Admin JWT (Level <= 1)", 
+            "response": "Complete user profile with metadata"
+          },
+          
+          "POST /api/v1/admin/users": {
+            "security": "Admin JWT (Level <= 1)",
+            "description": "Create new user account (admin created)",
+            "request": {
+              "username": "string",
+              "email": "string", 
+              "password": "string",
+              "firstName": "string",
+              "lastName": "string",
+              "isActive": "boolean"
+            },
+            "response": "Created user details"
+          },
+          
+          "PUT /api/v1/admin/users/{userId}": {
+            "security": "Admin JWT (Level <= 1)",
+            "description": "Update any user profile",
+            "request": "Partial user profile update",
+            "response": "Updated user profile"
+          },
+          
+          "DELETE /api/v1/admin/users/{userId}": {
+            "security": "Admin JWT (Level <= 1)",
+            "description": "Soft delete user account",
+            "response": "User marked as deleted"
+          },
+          
+          "PUT /api/v1/admin/users/{userId}/status": {
+            "security": "Admin JWT (Level <= 1)",
+            "request": {"status": "ACTIVE | INACTIVE | BANNED"},
+            "response": "User status updated"
+          },
+          
+          "POST /api/v1/admin/users/{userId}/reset-password": {
+            "security": "Admin JWT (Level <= 1)",
+            "description": "Force password reset for user",
+            "response": "Password reset email sent to user"
+          }
+        },
+        
+        "session_management": {
+          "GET /api/v1/admin/sessions": {
+            "security": "Admin JWT (Level <= 2)",
+            "query_params": ["page", "size", "userId", "status", "model", "dateFrom", "dateTo"],
+            "response": "Paginated chat sessions list with metadata"
+          },
+          
+          "GET /api/v1/admin/sessions/{sessionId}": {
+            "security": "Admin JWT (Level <= 2)",
+            "response": "Complete session details with user info"
+          },
+          
+          "PUT /api/v1/admin/sessions/{sessionId}": {
+            "security": "Admin JWT (Level <= 2)",
+            "description": "Update session (title, status, etc.)",
+            "request": {
+              "title": "string",
+              "status": "ACTIVE | PAUSED | ARCHIVED | DELETED"
+            },
+            "response": "Updated session details"
+          },
+          
+          "DELETE /api/v1/admin/sessions/{sessionId}": {
+            "security": "Admin JWT (Level <= 2)",
+            "description": "Delete chat session and all messages",
+            "response": "Session deletion confirmation"
+          },
+          
+          "POST /api/v1/admin/sessions/{sessionId}/archive": {
+            "security": "Admin JWT (Level <= 2)",
+            "description": "Archive session (soft delete)",
+            "response": "Session archived"
+          }
+        },
+        
+        "message_management": {
+          "GET /api/v1/admin/messages": {
+            "security": "Admin JWT (Level <= 2)",
+            "query_params": ["page", "size", "sessionId", "userId", "role", "dateFrom", "dateTo", "search"],
+            "response": "Paginated messages list with context"
+          },
+          
+          "GET /api/v1/admin/messages/{messageId}": {
+            "security": "Admin JWT (Level <= 2)",
+            "response": "Complete message details with session context"
+          },
+          
+          "PUT /api/v1/admin/messages/{messageId}": {
+            "security": "Admin JWT (Level <= 1)",
+            "description": "Edit message content (moderation)",
+            "request": {
+              "content": "string",
+              "moderationReason": "string"
+            },
+            "response": "Updated message"
+          },
+          
+          "DELETE /api/v1/admin/messages/{messageId}": {
+            "security": "Admin JWT (Level <= 1)",
+            "description": "Delete message (moderation)",
+            "request": {"reason": "string"},
+            "response": "Message deletion confirmation"
+          },
+          
+          "POST /api/v1/admin/messages/{messageId}/flag": {
+            "security": "Admin JWT (Level <= 2)",
+            "description": "Flag message for review",
+            "request": {
+              "flagType": "INAPPROPRIATE | SPAM | HARMFUL | OTHER",
+              "reason": "string"
+            },
+            "response": "Message flagged for review"
+          }
+        },
+        
+        "admin_management": {
+          "profiles": {
+            "GET /api/v1/admin/profile": {
+              "security": "Admin JWT",
+              "response": "Current admin profile"
+            },
+            
+            "PUT /api/v1/admin/profile": {
+              "security": "Admin JWT",
+              "request": "Admin profile update",
+              "response": "Updated admin profile"
+            },
+            
+            "PUT /api/v1/admin/password": {
+              "security": "Admin JWT",
+              "request": {"currentPassword": "string", "newPassword": "string"},
+              "response": "Admin password change confirmation"
+            }
+          },
+          
+          "admin_crud": {
+            "GET /api/v1/admin/admins": {
+              "security": "Admin JWT (Level <= 1)",
+              "query_params": ["page", "size", "level", "status", "search"],
+              "response": "Paginated admin list"
+            },
+            
+            "GET /api/v1/admin/admins/{adminId}": {
+              "security": "Admin JWT (Level <= 1)",
+              "response": "Complete admin profile"
+            },
+            
+            "POST /api/v1/admin/admins": {
+              "security": "Admin JWT (Level < target_level)",
+              "description": "Create new admin (can only create lower level admins)",
+              "request": {
+                "username": "string",
+                "email": "string",
+                "password": "string",
+                "level": "integer (must be > creator.level)",
+                "permissions": "array of strings"
+              },
+              "response": "Created admin details"
+            },
+            
+            "PUT /api/v1/admin/admins/{adminId}": {
+              "security": "Admin JWT (Level < target_admin.level)",
+              "description": "Update admin (can only update lower level admins)",
+              "request": "Partial admin profile update",
+              "response": "Updated admin profile"
+            },
+            
+            "DELETE /api/v1/admin/admins/{adminId}": {
+              "security": "Admin JWT (Level < target_admin.level)",
+              "description": "Delete admin account",
+              "response": "Admin deletion confirmation"
+            },
+            
+            "PUT /api/v1/admin/admins/{adminId}/status": {
+              "security": "Admin JWT (Level < target_admin.level)",
+              "request": {"status": "ACTIVE | INACTIVE"},
+              "response": "Admin status updated"
+            },
+            
+            "PUT /api/v1/admin/admins/{adminId}/permissions": {
+              "security": "Admin JWT (Level < target_admin.level)",
+              "request": {"permissions": "array of strings"},
+              "response": "Admin permissions updated"
+            }
+          }
+        },
+        
+        "system_analytics": {
+          "GET /api/v1/admin/metrics": {
+            "security": "Admin JWT (Level <= 1)",
+            "response": {
+              "userMetrics": "Registration, active users, etc.",
+              "systemMetrics": "Performance, resource usage",
+              "chatMetrics": "Messages, sessions, AI usage"
+            }
+          },
+          
+          "GET /api/v1/admin/analytics/users": {
+            "security": "Admin JWT (Level <= 1)",
+            "query_params": ["dateFrom", "dateTo", "groupBy"],
+            "response": "User analytics data"
+          },
+          
+          "GET /api/v1/admin/analytics/sessions": {
+            "security": "Admin JWT (Level <= 1)",
+            "query_params": ["dateFrom", "dateTo", "groupBy"],
+            "response": "Session analytics data"
+          },
+          
+          "GET /api/v1/admin/analytics/messages": {
+            "security": "Admin JWT (Level <= 1)",
+            "query_params": ["dateFrom", "dateTo", "groupBy"],
+            "response": "Message analytics data"
+          }
+        }
+      },
+      
+      "system_monitoring": {
+        "GET /api/v1/system/health": {
+          "public": true,
+          "response": {
+            "status": "UP | DOWN",
+            "components": {
+              "database": "UP | DOWN",
+              "redis": "UP | DOWN",
+              "aiService": "UP | DOWN",
+              "diskSpace": "UP | DOWN"
+            }
+          }
+        }
+      }
+    }
+  },
+  
+  "database_design": {
+    "mysql_tables": {
+      "users": {
+        "primary_key": "id (BIGINT AUTO_INCREMENT)",
+        "unique_constraints": ["username", "email"],
+        "indexes": ["email", "username", "created_at"],
+        "columns": [
+          "id BIGINT PRIMARY KEY AUTO_INCREMENT",
+          "username VARCHAR(50) UNIQUE NOT NULL",
+          "email VARCHAR(255) UNIQUE NOT NULL",
+          "password_hash VARCHAR(255) NOT NULL",
+          "salt VARCHAR(64) NOT NULL",
+          "first_name VARCHAR(100)",
+          "last_name VARCHAR(100)",
+          "profile_picture VARCHAR(500)",
+          "is_active BOOLEAN DEFAULT TRUE",
+          "email_verified BOOLEAN DEFAULT FALSE",
+          "login_attempts INT DEFAULT 0",
+          "locked_until TIMESTAMP NULL",
+          "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+          "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
+          "last_login_at TIMESTAMP NULL"
+        ]
+      },
+      
+      "admins": {
+        "primary_key": "id (BIGINT AUTO_INCREMENT)",
+        "columns": [
+          "id BIGINT PRIMARY KEY AUTO_INCREMENT",
+          "username VARCHAR(50) UNIQUE NOT NULL",
+          "email VARCHAR(255) UNIQUE NOT NULL",
+          "password_hash VARCHAR(255) NOT NULL",
+          "salt VARCHAR(64) NOT NULL",
+          "first_name VARCHAR(100)",
+          "last_name VARCHAR(100)",
+          "profile_picture VARCHAR(500)",
+          "level INT NOT NULL DEFAULT 2",
+          "permissions JSON",
+          "is_active BOOLEAN DEFAULT TRUE",
+          "login_attempts INT DEFAULT 0",
+          "locked_until TIMESTAMP NULL",
+          "created_by BIGINT",
+          "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+          "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
+          "last_login_at TIMESTAMP NULL",
+          "FOREIGN KEY (created_by) REFERENCES admins(id)"
+        ]
+      },
+      
+      "message_flags": {
+        "primary_key": "id (BIGINT AUTO_INCREMENT)",
+        "foreign_keys": ["message_id -> messages(id)", "flagged_by -> admins(id)"],
+        "columns": [
+          "id BIGINT PRIMARY KEY AUTO_INCREMENT",
+          "message_id BIGINT NOT NULL",
+          "flagged_by BIGINT NOT NULL",
+          "flag_type ENUM('INAPPROPRIATE', 'SPAM', 'HARMFUL', 'OTHER') NOT NULL",
+          "reason TEXT",
+          "status ENUM('PENDING', 'REVIEWED', 'RESOLVED', 'DISMISSED') DEFAULT 'PENDING'",
+          "reviewed_by BIGINT NULL",
+          "reviewed_at TIMESTAMP NULL",
+          "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+          "FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE",
+          "FOREIGN KEY (flagged_by) REFERENCES admins(id)",
+          "FOREIGN KEY (reviewed_by) REFERENCES admins(id)"
+        ]
+      },
+      
+      "admin_activity_log": {
+        "primary_key": "id (BIGINT AUTO_INCREMENT)",
+        "foreign_keys": ["admin_id -> admins(id)"],
+        "columns": [
+          "id BIGINT PRIMARY KEY AUTO_INCREMENT",
+          "admin_id BIGINT NOT NULL",
+          "action VARCHAR(100) NOT NULL",
+          "resource_type VARCHAR(50) NOT NULL",
+          "resource_id VARCHAR(100)",
+          "details JSON",
+          "ip_address VARCHAR(45)",
+          "user_agent TEXT",
+          "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+          "FOREIGN KEY (admin_id) REFERENCES admins(id)"
+        ]
+      },
+      
+      "chat_sessions": {
+        "primary_key": "session_id (VARCHAR(36))",
+        "foreign_keys": ["user_id -> users(id)"],
+        "indexes": ["user_id", "created_at", "status"],
+        "columns": [
+          "session_id VARCHAR(36) PRIMARY KEY",
+          "user_id BIGINT NOT NULL",
+          "title VARCHAR(255)",
+          "model VARCHAR(50) NOT NULL DEFAULT 'gpt-3.5-turbo'",
+          "status ENUM('ACTIVE', 'PAUSED', 'ARCHIVED', 'DELETED') DEFAULT 'ACTIVE'",
+          "message_count INT DEFAULT 0",
+          "token_usage BIGINT DEFAULT 0",
+          "is_public BOOLEAN DEFAULT FALSE",
+          "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+          "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
+          "last_accessed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+          "expires_at TIMESTAMP NULL",
+          "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE"
+        ]
+      },
+      
+      "messages": {
+        "primary_key": "id (BIGINT AUTO_INCREMENT)",
+        "foreign_keys": ["session_id -> chat_sessions(session_id)"],
+        "indexes": ["session_id", "timestamp"],
+        "columns": [
+          "id BIGINT PRIMARY KEY AUTO_INCREMENT",
+          "session_id VARCHAR(36) NOT NULL",
+          "role ENUM('USER', 'ASSISTANT', 'SYSTEM') NOT NULL",
+          "content TEXT NOT NULL",
+          "token_count INT",
+          "model VARCHAR(50)",
+          "metadata JSON",
+          "timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+          "FOREIGN KEY (session_id) REFERENCES chat_sessions(session_id) ON DELETE CASCADE"
+        ]
+      }
+    },
+    
+    "redis_data_structures": {
+      "session_cache": {
+        "key_pattern": "session:{sessionId}",
+        "data_type": "Hash",
+        "fields": ["userId", "title", "model", "lastAccessed", "messageCount"],
+        "ttl": "30 minutes"
+      },
+      
+      "user_profile_cache": {
+        "key_pattern": "user:{userId}",
+        "data_type": "Hash", 
+        "fields": ["username", "email", "firstName", "lastName", "isActive"],
+        "ttl": "2 hours"
+      },
+      
+      "rate_limiting": {
+        "key_pattern": "rate_limit:{userId}:{endpoint}",
+        "data_type": "String (counter)",
+        "ttl": "1 minute"
+      },
+      
+      "jwt_blacklist": {
+        "key_pattern": "jwt_blacklist:{tokenId}",
+        "data_type": "String",
+        "ttl": "Token expiry time"
+      },
+      
+      "active_sessions": {
+        "key_pattern": "active_sessions",
+        "data_type": "Set",
+        "purpose": "Track currently active chat sessions"
+      }
+    }
+  },
+  
+  "security_implementation": {
+    "password_hashing": {
+      "algorithm": "Argon2id",
+      "parameters": {
+        "memory_cost": 65536,
+        "time_cost": 3,
+        "parallelism": 4,
+        "salt_length": 32,
+        "hash_length": 64
+      },
+      "pepper": "Application-wide secret stored in environment variables"
+    },
+    
+    "jwt_configuration": {
+      "algorithm": "RS256",
+      "key_pair": "Generated RSA 2048-bit keys",
+      "access_token_expiry": "1 hour",
+      "refresh_token_expiry": "7 days",
+      "claims": ["user_id", "username", "email", "roles", "session_id"]
+    },
+    
+    "rate_limiting_rules": {
+      "login_attempts": "5 attempts per 15 minutes per IP",
+      "api_requests": "100 requests per minute per user",
+      "chat_requests": "20 requests per minute per user",
+      "registration": "3 registrations per hour per IP"
+    }
+  },
+  
+  "monitoring_configuration": {
+    "health_check_endpoints": {
+      "/actuator/health": "Overall application health",
+      "/actuator/health/db": "Database connectivity",
+      "/actuator/health/redis": "Redis connectivity",
+      "/actuator/health/ai": "AI service connectivity"
+    },
+    
+    "custom_metrics": {
+      "business_metrics": [
+        "chat_requests_total - Counter with labels [user_id, model, success]",
+        "active_users_gauge - Current active users in last 24h",
+        "session_duration_histogram - Session duration distribution",
+        "message_length_histogram - Message length distribution",
+        "ai_response_time_histogram - AI service response times"
+      ],
+      
+      "technical_metrics": [
+        "database_connections_gauge - Active DB connections",
+        "redis_operations_total - Redis operations counter",
+        "jwt_tokens_issued_total - JWT tokens issued counter",
+        "authentication_attempts_total - Login attempts counter"
+      ]
+    },
+    
+    "logging_configuration": {
+      "structured_logging": true,
+      "correlation_ids": true,
+      "log_levels": {
+        "development": "DEBUG",
+        "testing": "INFO", 
+        "production": "WARN"
+      },
+      "sensitive_data_masking": ["password", "token", "email"]
+    }
+  },
+  
+  "deployment_strategy": {
+    "containerization": {
+      "dockerfile": "Multi-stage build with OpenJDK 21",
+      "base_image": "openjdk:21-jre-slim",
+      "build_optimization": "Layer caching for dependencies",
+      "security": "Non-root user execution"
+    },
+    
+    "docker_compose": {
+      "services": ["mcp-server", "mysql", "redis"],
+      "networks": "Custom bridge network",
+      "volumes": "Persistent storage for databases",
+      "secrets": "Environment-based secret management"
+    },
+    
+    "kubernetes_deployment": {
+      "namespace": "mcp-server",
+      "deployments": {
+        "mcp-server-app": {
+          "replicas": 3,
+          "strategy": "RollingUpdate",
+          "resources": {
+            "requests": {"cpu": "500m", "memory": "512Mi"},
+            "limits": {"cpu": "1000m", "memory": "1Gi"}
+          }
+        },
+        "mysql": {
+          "replicas": 1,
+          "persistent_volume": "20Gi",
+          "backup_strategy": "Daily automated backups"
+        },
+        "redis": {
+          "replicas": 1,
+          "persistent_volume": "5Gi",
+          "configuration": "Optimized for caching workload"
+        }
+      }
+    }
+  },
+  
+  "development_phases": {
+    "phase_1_foundation": {
+      "duration": "2 weeks",
+      "deliverables": [
+        "Spring Boot project setup",
+        "MySQL + Redis configuration",
+        "Core entity models",
+        "Database migrations",
+        "Basic authentication"
+      ]
+    },
+    
+    "phase_2_user_management": {
+      "duration": "2 weeks", 
+      "deliverables": [
+        "User registration/login",
+        "JWT implementation",
+        "Password security (Argon2)",
+        "Email verification",
+        "Profile management"
+      ]
+    },
+    
+    "phase_3_chat_system": {
+      "duration": "2 weeks",
+      "deliverables": [
+        "Session management",
+        "Message handling",
+        "OpenAI integration",
+        "Redis caching",
+        "Context management"
+      ]
+    },
+    
+    "phase_4_admin_security": {
+      "duration": "1 week",
+      "deliverables": [
+        "Admin user system",
+        "Role-based access control",
+        "Rate limiting",
+        "Input validation",
+        "Security hardening"
+      ]
+    },
+    
+    "phase_5_monitoring_ops": {
+      "duration": "1 week",
+      "deliverables": [
+        "Health checks",
+        "Custom metrics",
+        "Structured logging",
+        "Error handling",
+        "API documentation"
+      ]
+    },
+    
+    "phase_6_deployment": {
+      "duration": "1 week",
+      "deliverables": [
+        "Docker containerization",
+        "Kubernetes manifests",
+        "CI/CD pipeline",
+        "Integration testing",
+        "Performance optimization"
+      ]
+    },
+    
+    "phase_7_launch": {
+      "duration": "1 week",
+      "deliverables": [
+        "Security audit",
+        "Load testing",
+        "Documentation completion",
+        "Production deployment",
+        "Monitoring setup"
+      ]
+    }
+  }
+}

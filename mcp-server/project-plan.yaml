@@ -1,0 +1,313 @@
+# MCP Server Project Plan - Java Spring Boot
+# Enterprise-Ready Model Context Protocol Server
+# Date: September 24, 2025
+
+project:
+  name: "MCP Server - Java Spring Boot"
+  version: "2.0.0"
+  description: "Production-ready Model Context Protocol Server with user management, authentication, and enterprise features"
+  
+architecture:
+  type: "Microservice Architecture"
+  backend:
+    framework: "Spring Boot 3.2+"
+    java_version: "17"
+    build_tool: "Maven"
+    packaging: "JAR"
+  
+  database:
+    primary: "MySQL 8.0+"
+    cache: "Redis 7.0+"
+    strategy: "Hybrid Architecture"
+    description: "MySQL for persistent data, Redis for session cache and performance optimization"
+  
+  deployment:
+    containerization: "Docker"
+    orchestration: "Kubernetes (optional)"
+    cloud_platform: "Cloud agnostic (AWS/GCP/Azure)"
+
+# Security Configuration
+security:
+  password_policy:
+    min_length: 8
+    max_length: 128
+    require_uppercase: true
+    require_lowercase: true
+    require_numbers: true
+    require_special_chars: true
+    
+  password_hashing:
+    algorithm: "Argon2id"
+    memory_cost: 65536  # 64 MB
+    time_cost: 3        # 3 iterations
+    parallelism: 4      # 4 threads
+    salt_length: 32     # 32 bytes
+    hash_length: 64     # 64 bytes
+    pepper: "APPLICATION_WIDE_SECRET"
+    
+  jwt:
+    algorithm: "RS256"
+    access_token_expiry: "1h"
+    refresh_token_expiry: "7d"
+    issuer: "mcp-server"
+    
+  rate_limiting:
+    login_attempts: "5 per 15 minutes per IP"
+    api_calls: "100 per minute per user"
+    chat_requests: "20 per minute per user"
+    
+  cors:
+    allowed_origins: ["http://localhost:3000", "https://g4stly.tr", "https://bot.g4stly.tr"]
+    allowed_methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    allowed_headers: ["Authorization", "Content-Type"]
+
+# Database Configuration
+database:
+  mysql:
+    host: "${DB_HOST:localhost}"
+    port: "${DB_PORT:3306}"
+    database: "${DB_NAME:mcp_server}"
+    username: "${DB_USERNAME:mcp_user}"
+    password: "${DB_PASSWORD}"
+    
+    connection_pool:
+      initial_size: 5
+      max_active: 20
+      max_idle: 10
+      min_idle: 5
+      
+    properties:
+      dialect: "org.hibernate.dialect.MySQL8Dialect"
+      show_sql: false
+      format_sql: true
+      hbm2ddl_auto: "validate"
+      
+  redis:
+    host: "${REDIS_HOST:localhost}"
+    port: "${REDIS_PORT:6379}"
+    password: "${REDIS_PASSWORD:}"
+    database: 0
+    
+    connection_pool:
+      max_active: 20
+      max_idle: 10
+      min_idle: 5
+      max_wait: 2000
+      
+    cache_config:
+      default_ttl: 3600  # 1 hour
+      session_ttl: 1800  # 30 minutes
+      user_profile_ttl: 7200  # 2 hours
+
+# AI Integration
+ai_integration:
+  providers:
+    openai:
+      api_key: "${OPENAI_API_KEY}"
+      base_url: "https://api.openai.com/v1"
+      models: ["gpt-3.5-turbo", "gpt-4", "gpt-4-turbo"]
+      default_model: "gpt-3.5-turbo"
+      max_tokens: 2048
+      temperature: 0.7
+      
+    ollama:
+      enabled: false
+      base_url: "${OLLAMA_URL:http://localhost:11434}"
+      models: ["llama3", "mistral", "codellama"]
+      default_model: "llama3"
+      
+  configuration:
+    rate_limiting: "50 requests per minute per user"
+    context_window: 4096
+    max_conversation_length: 50
+    auto_summarization: true
+    summarization_threshold: 30
+
+# Monitoring and Observability
+monitoring:
+  metrics:
+    enabled: true
+    endpoint: "/actuator/metrics"
+    
+    custom_metrics:
+      - name: "chat_requests_total"
+        type: "Counter"
+        description: "Total number of chat requests"
+        labels: ["user_id", "session_id", "model"]
+        
+      - name: "chat_response_time"
+        type: "Timer"
+        description: "Chat response time in milliseconds"
+        labels: ["model", "success"]
+        
+      - name: "active_users"
+        type: "Gauge"
+        description: "Number of active users in last 24h"
+        
+      - name: "active_sessions"
+        type: "Gauge"
+        description: "Number of active chat sessions"
+        
+      - name: "database_connections"
+        type: "Gauge"
+        description: "Active database connections"
+        
+      - name: "redis_operations"
+        type: "Counter"
+        description: "Redis operations count"
+        labels: ["operation", "success"]
+        
+  health_checks:
+    database:
+      timeout: 5000
+      query: "SELECT 1"
+      
+    redis:
+      timeout: 3000
+      command: "PING"
+      
+    ai_service:
+      timeout: 10000
+      endpoint: "/models"
+      
+    disk_space:
+      threshold: 85  # percentage
+      
+    memory_usage:
+      threshold: 90  # percentage
+
+# Configuration Management
+configuration:
+  profiles:
+    - name: "development"
+      properties:
+        logging.level.com.mcpserver: "DEBUG"
+        spring.jpa.show-sql: true
+        cors.allowed-origins: "*"
+        
+    - name: "testing"
+      properties:
+        spring.datasource.url: "jdbc:h2:mem:testdb"
+        logging.level.com.mcpserver: "INFO"
+        
+    - name: "production"
+      properties:
+        logging.level.com.mcpserver: "WARN"
+        spring.jpa.show-sql: false
+        management.endpoints.web.exposure.include: "health,metrics"
+        
+  external_config:
+    - type: "environment_variables"
+      prefix: "MCP_"
+      
+    - type: "kubernetes_configmap"
+      name: "mcp-server-config"
+      
+    - type: "kubernetes_secrets"
+      name: "mcp-server-secrets"
+
+# Error Handling and Validation
+error_handling:
+  global_exception_handler: true
+  
+  error_codes:
+    - code: "USER_NOT_FOUND"
+      http_status: 404
+      message: "User not found"
+      
+    - code: "INVALID_CREDENTIALS"
+      http_status: 401
+      message: "Invalid username or password"
+      
+    - code: "SESSION_NOT_FOUND"
+      http_status: 404
+      message: "Chat session not found"
+      
+    - code: "SESSION_EXPIRED"
+      http_status: 410
+      message: "Chat session has expired"
+      
+    - code: "RATE_LIMIT_EXCEEDED"
+      http_status: 429
+      message: "Rate limit exceeded. Please try again later"
+      
+    - code: "AI_SERVICE_UNAVAILABLE"
+      http_status: 503
+      message: "AI service is temporarily unavailable"
+      
+    - code: "VALIDATION_ERROR"
+      http_status: 400
+      message: "Request validation failed"
+      
+  validation:
+    bean_validation: true
+    custom_validators:
+      - name: "PasswordStrength"
+        description: "Validate password complexity"
+        
+      - name: "UsernameFormat"
+        description: "Validate username format"
+        
+      - name: "SessionLimit"
+        description: "Validate user session limits"
+
+# Containerization and Deployment
+containerization:
+  dockerfile:
+    base_image: "openjdk:21-jre-slim"
+    multi_stage_build: true
+    
+  docker_compose:
+    services:
+      - name: "mcp-server"
+        build: "."
+        ports: ["8080:8080"]
+        environment:
+          - "SPRING_PROFILES_ACTIVE=production"
+          - "DB_HOST=mysql"
+          - "REDIS_HOST=redis"
+        depends_on: ["mysql", "redis"]
+        
+      - name: "mysql"
+        image: "mysql:8.0"
+        environment:
+          - "MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}"
+          - "MYSQL_DATABASE=mcp_server"
+          - "MYSQL_USER=mcp_user"
+          - "MYSQL_PASSWORD=${MYSQL_PASSWORD}"
+        volumes:
+          - "mysql_data:/var/lib/mysql"
+          
+      - name: "redis"
+        image: "redis:7-alpine"
+        command: "redis-server --appendonly yes"
+        volumes:
+          - "redis_data:/data"
+          
+  kubernetes:
+    namespace: "mcp-server"
+    
+    deployments:
+      - name: "mcp-server-app"
+        replicas: 3
+        strategy: "RollingUpdate"
+        
+      - name: "mysql"
+        replicas: 1
+        strategy: "Recreate"
+        persistent_volume: true
+        
+      - name: "redis"
+        replicas: 1
+        persistent_volume: true
+        
+    services:
+      - name: "mcp-server-service"
+        type: "LoadBalancer"
+        port: 80
+        target_port: 8080
+        
+    ingress:
+      enabled: true
+      tls: true
+      hosts: ["api.mcpserver.com"]
