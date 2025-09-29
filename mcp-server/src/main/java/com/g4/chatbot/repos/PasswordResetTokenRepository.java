@@ -1,0 +1,18 @@
+package com.g4.chatbot.repos;
+
+import com.g4.chatbot.models.PasswordResetToken;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface PasswordResetTokenRepository extends JpaRepository<PasswordResetToken, Integer> {
+    Optional<PasswordResetToken> findByToken(String token);
+    List<PasswordResetToken> findByUserIdAndUserType(Integer userId, String userType);
+    void deleteByExpiryDateBefore(LocalDateTime dateTime);
+    Optional<PasswordResetToken> findFirstByRequestingIpOrderByCreatedDateDesc(String ipAddress);
+    Optional<PasswordResetToken> findFirstByOrderByCreatedDateDesc();
+}
