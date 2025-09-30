@@ -11,8 +11,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
@@ -33,18 +31,6 @@ public class SecurityConfig {
 
     @Autowired
     private org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource;
-
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        // Configure Argon2id as specified in project plan
-        return new Argon2PasswordEncoder(
-            32,    // salt length
-            64,    // hash length  
-            4,     // parallelism
-            65536, // memory cost (64 MB)
-            3      // iterations
-        );
-    }
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {

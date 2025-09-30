@@ -1,619 +1,552 @@
 package com.g4.chatbot.services;
 
-import com.g4.chatbot.dto.AuthResponse;
-import com.g4.chatbot.dto.LoginRequest;
-import com.g4.chatbot.dto.RegisterRequest;
+import com.g4.chatbot.dto.auth.*;
 import com.g4.chatbot.models.Admin;
-import com.g4.chatbot.models.Doctor;
-import com.g4.chatbot.models.Nurse;
+import com.g4.chatbot.models.PasswordResetToken;
+import com.g4.chatbot.models.User;
 import com.g4.chatbot.models.VerificationToken;
 import com.g4.chatbot.repos.AdminRepository;
-import com.g4.chatbot.repos.DoctorRepository;
-import com.g4.chatbot.repos.NurseRepository;
-import com.g4.chatbot.repos.PolyclinicRepository;
+import com.g4.chatbot.repos.PasswordResetTokenRepository;
+import com.g4.chatbot.repos.UserRepository;
 import com.g4.chatbot.repos.VerificationTokenRepository;
 import com.g4.chatbot.security.JwtUtils;
-
 import jakarta.servlet.http.HttpServletRequest;
-
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.LockedException;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
-//! on register: email/username kullanılıyor demek çok güvenli olmayabilir.
-//! dememek de farklı bir sıkıntı, kullanıcı kayıt olurken sorun nerede anlamayacaktır.
-
 @Service
+@Slf4j
 public class AuthService {
-
+    
     @Autowired
-    private PasswordService passwordService;
-
-    @Autowired
-    private NurseRepository nurseRepository;
-
-    @Autowired
-    private DoctorRepository doctorRepository;
-
+    private UserRepository userRepository;
+    
     @Autowired
     private AdminRepository adminRepository;
-
+    
     @Autowired
-    private PolyclinicRepository polyclinicRepository;
-
+    private PasswordService passwordService;
+    
     @Autowired
     private JwtUtils jwtUtils;
-
-    @Autowired
-    private AuthLogService authLogService;
-
-    @Autowired
-    private FcmTokenService fcmTokenService;
-
-    @Autowired
-    private VerificationTokenRepository verificationTokenRepository;
-
+    
     @Autowired
     private EmailService emailService;
-
+    
     @Autowired
-    private AccountSecurityService accountSecurityService;
-
+    private VerificationTokenRepository verificationTokenRepository;
+    
     @Autowired
-    private SecurityDelayService securityDelayService;
-
+    private PasswordResetTokenRepository passwordResetTokenRepository;
+    
+    /**
+     * Register a new user (only users can register via API, admins must be created manually)
+     */
+    @Transactional
     public AuthResponse register(RegisterRequest request, HttpServletRequest httpRequest) {
-        // First, validate the polyclinic exists
-        if (!polyclinicRepository.existsById(request.getPolyclinicId())) {
-            // Log the error
-            authLogService.logAuthentication(
-                    httpRequest,
-                    0,
-                    request.getUserType(),
-                    false,
-                    "Registration failed: Polyclinic ID " + request.getPolyclinicId() + " does not exist");
-            throw new IllegalArgumentException("Polyclinic with ID " + request.getPolyclinicId() + " does not exist");
-        }
-
-        // Check if username already exists (across all user types)
-        if (nurseRepository.existsByUsername(request.getUsername()) ||
-                doctorRepository.existsByUsername(request.getUsername()) ||
+        try {
+            // Check if username already exists in both tables
+            if (userRepository.existsByUsername(request.getUsername()) || 
                 adminRepository.existsByUsername(request.getUsername())) {
-            authLogService.logAuthentication(
-                    httpRequest,
-                    0,
-                    request.getUserType(),
-                    false,
-                    "Registration failed: Username " + request.getUsername() + " already exists");
-            throw new IllegalArgumentException(
-                    "Invalid registration information. Please try again with different credentials.");
-        }
-
-        // Check if email already exists (across all user types)
-        if (nurseRepository.existsByEmail(request.getEmail()) ||
-                doctorRepository.existsByEmail(request.getEmail())) {
-            authLogService.logAuthentication(
-                    httpRequest,
-                    0,
-                    request.getUserType(),
-                    false,
-                    "Registration failed: Email " + request.getEmail() + " already exists");
-            throw new IllegalArgumentException(
-                    "Invalid registration information. Please try again with different credentials.");
-        }
-
-        // Check if nurse code already exists (only for nurse registration)
-        if ("nurse".equals(request.getUserType().toLowerCase()) && request.getNurseCode() != null) {
-            boolean nurseCodeExists = nurseRepository.existsByNurseCode(request.getNurseCode());
-            if (nurseCodeExists) {
-                authLogService.logAuthentication(
-                        httpRequest,
-                        0,
-                        request.getUserType(),
-                        false,
-                        "Registration failed: Nurse code " + request.getNurseCode() + " already exists");
-                throw new IllegalArgumentException(
-                        "Invalid registration information. Please try again with different credentials.");
+                return AuthResponse.builder()
+                    .success(false)
+                    .message("Username already exists")
+                    .build();
             }
+            
+            // Check if email already exists in both tables
+            if (userRepository.existsByEmail(request.getEmail()) || 
+                adminRepository.existsByEmail(request.getEmail())) {
+                return AuthResponse.builder()
+                    .success(false)
+                    .message("Email already exists")
+                    .build();
+            }
+            
+            // Only register regular users via API
+            return registerUser(request, httpRequest);
+            
+        } catch (Exception e) {
+            log.error("Registration failed for user: {}", request.getUsername(), e);
+            return AuthResponse.builder()
+                .success(false)
+                .message("Registration failed. Please try again.")
+                .build();
         }
-
+    }
+    
+    private AuthResponse registerUser(RegisterRequest request, HttpServletRequest httpRequest) {
+        // Create new user
         String salt = passwordService.generateSalt();
         String hashedPassword = passwordService.hashPassword(request.getPassword(), salt);
-
-        try {
-            if ("nurse".equals(request.getUserType().toLowerCase())) {
-                Nurse nurse = new Nurse();
-                nurse.setName(request.getName());
-                nurse.setEmail(request.getEmail());
-                nurse.setPhoneNumber(request.getPhoneNumber());
-                nurse.setUsername(request.getUsername());
-                nurse.setPassword(hashedPassword);
-                nurse.setSalt(salt);
-                nurse.setNurseCode(request.getNurseCode());
-                nurse.setPolyclinicId(request.getPolyclinicId());
-                nurse.setLevel(2); // Default level for nurse
-                nurse.setIsVerified(false);
-
-                nurse = nurseRepository.save(nurse);
-
-                // Create verification token
-                VerificationToken verificationToken = new VerificationToken();
-                verificationToken.setUserId(nurse.getId());
-                verificationToken.setUserType("nurse");
-                verificationToken = verificationTokenRepository.save(verificationToken);
-
-                // Send verification email
-                try {
-                    emailService.sendVerificationEmail(
-                            nurse.getEmail(),
-                            verificationToken.getToken(),
-                            nurse.getName());
-                } catch (Exception e) {
-                    System.err.println("Warning: Failed to send verification email: " + e.getMessage());
-                    // Continue with registration even if email fails
-                }
-
-                // Register FCM token if provided in the request
-                if (request.getFcmToken() != null && !request.getFcmToken().isEmpty()) {
-                    try {
-                        // Get polyclinic name
-                        String polyclinicName = polyclinicRepository.findById(request.getPolyclinicId())
-                                .map(polyclinic -> polyclinic.getName())
-                                .orElse("Unknown Polyclinic");
-
-                        // Register the token
-                        FcmToken fcmTokenEntity = fcmTokenService.registerToken(
-                                request.getFcmToken(),
-                                "nurse",
-                                polyclinicName);
-
-                        // Update the nurse with the token ID
-                        if (fcmTokenEntity != null) {
-                            nurse.setFcmTokenId(fcmTokenEntity.getId());
-                            nurse = nurseRepository.save(nurse);
-                        }
-                    } catch (Exception e) {
-                        // Log but don't fail registration if token registration fails
-                        System.err.println("Warning: FCM token registration failed: " + e.getMessage());
-                    }
-                }
-
-                // Log successful registration
-                authLogService.logAuthentication(
-                        httpRequest,
-                        nurse.getId(),
-                        "nurse",
-                        true,
-                        "Registration successful");
-
-                // Generate JWT token
-                String token = jwtUtils.generateToken(nurse.getUsername(), nurse.getId(), "nurse");
-                String fcmToken = fcmTokenService.getFcmTokenForUser(nurse.getId(), "nurse");
-
-                return new AuthResponse(
-                        nurse.getId(),
-                        nurse.getName(),
-                        nurse.getUsername(),
-                        "nurse",
-                        token,
-                        nurse.getPolyclinicId(),
-                        fcmToken);
-            } else if ("doctor".equals(request.getUserType().toLowerCase())) {
-                Doctor doctor = new Doctor();
-                doctor.setName(request.getName());
-                doctor.setEmail(request.getEmail());
-                doctor.setPhoneNumber(request.getPhoneNumber());
-                doctor.setUsername(request.getUsername());
-                doctor.setPassword(hashedPassword);
-                doctor.setSalt(salt);
-                doctor.setPolyclinicId(request.getPolyclinicId());
-                doctor.setIsVerified(false);
-
-                doctor = doctorRepository.save(doctor);
-
-                // Create verification token
-                VerificationToken verificationToken = new VerificationToken();
-                verificationToken.setUserId(doctor.getId());
-                verificationToken.setUserType("doctor");
-                verificationToken = verificationTokenRepository.save(verificationToken);
-
-                // Send verification email
-                try {
-                    emailService.sendVerificationEmail(
-                            doctor.getEmail(),
-                            verificationToken.getToken(),
-                            doctor.getName());
-                } catch (Exception e) {
-                    System.err.println("Warning: Failed to send verification email: " + e.getMessage());
-                    // Continue with registration even if email fails
-                }
-
-                // Register FCM token if provided in the request
-                if (request.getFcmToken() != null && !request.getFcmToken().isEmpty()) {
-                    try {
-                        // Get polyclinic name
-                        String polyclinicName = polyclinicRepository.findById(request.getPolyclinicId())
-                                .map(polyclinic -> polyclinic.getName())
-                                .orElse("Unknown Polyclinic");
-
-                        // Register the token
-                        FcmToken fcmTokenEntity = fcmTokenService.registerToken(
-                                request.getFcmToken(),
-                                "doctor",
-                                polyclinicName);
-
-                        // Update the nurse with the token ID
-                        if (fcmTokenEntity != null) {
-                            doctor.setFcmTokenId(fcmTokenEntity.getId());
-                            doctor = doctorRepository.save(doctor);
-                        }
-                    } catch (Exception e) {
-                        // Log but don't fail registration if token registration fails
-                        System.err.println("Warning: FCM token registration failed: " + e.getMessage());
-                    }
-                }
-
-                // Log successful registration
-                authLogService.logAuthentication(
-                        httpRequest,
-                        doctor.getId(),
-                        "doctor",
-                        true,
-                        "Registration successful");
-
-                // Generate JWT token
-                String token = jwtUtils.generateToken(doctor.getUsername(), doctor.getId(), "doctor");
-                String fcmToken = fcmTokenService.getFcmTokenForUser(doctor.getId(), "doctor");
-
-                return new AuthResponse(
-                        doctor.getId(),
-                        doctor.getName(),
-                        doctor.getUsername(),
-                        "doctor",
-                        token,
-                        doctor.getPolyclinicId(),
-                        fcmToken);
-            } else {
-                // Log failed registration - invalid user type
-                authLogService.logAuthentication(
-                        httpRequest,
-                        0,
-                        request.getUserType(),
-                        false,
-                        "Invalid user type");
-                throw new IllegalArgumentException("Invalid user type. Must be 'nurse' or 'doctor'");
-            }
-        } catch (Exception e) {
-            // Log registration failure
-            authLogService.logAuthentication(
-                    httpRequest,
-                    0,
-                    request.getUserType(),
-                    false,
-                    "Registration failed: " + e.getMessage());
-            throw e;
-        }
+        
+        User user = new User();
+        user.setUsername(request.getUsername());
+        user.setEmail(request.getEmail());
+        user.setPasswordHash(hashedPassword);
+        user.setSalt(salt);
+        user.setFirstName(request.getFirstName());
+        user.setLastName(request.getLastName());
+        user.setIsActive(true);
+        user.setEmailVerified(false);
+        
+        user = userRepository.save(user);
+        
+        // Create verification token
+        VerificationToken verificationToken = new VerificationToken(user.getId(), "user");
+        verificationTokenRepository.save(verificationToken);
+        
+        // Send verification email
+        emailService.sendVerificationEmail(user.getEmail(), verificationToken.getToken(), 
+            user.getFirstName() != null ? user.getFirstName() : user.getUsername());
+        
+        // Generate tokens for automatic login after registration
+        String accessToken = jwtUtils.generateToken(user.getUsername(), user.getId(), "user", null);
+        String refreshToken = jwtUtils.generateRefreshToken(user.getUsername());
+        
+        return AuthResponse.builder()
+            .success(true)
+            .message("User registered successfully. Please check your email to verify your account.")
+            .accessToken(accessToken)
+            .refreshToken(refreshToken)
+            .expiresIn(jwtUtils.getAccessTokenExpiration())
+            .user(AuthResponse.UserInfo.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .profilePicture(user.getProfilePicture())
+                .isActive(user.getIsActive())
+                .emailVerified(user.getEmailVerified())
+                .userType("user")
+                .lastLoginAt(user.getLastLoginAt())
+                .build())
+            .build();
     }
-
-    public AuthResponse login(LoginRequest request, HttpServletRequest httpRequest) {
-        // Check for suspicious activity first
-        if (authLogService.isIpSuspicious(httpRequest)) {
-            // Log the suspicious activity
-            authLogService.logAuthentication(
-                    httpRequest,
-                    0,
-                    request.getUserType(),
-                    false,
-                    "IP temporarily blocked due to too many failed attempts");
-            throw new LockedException("Too many failed login attempts. Please try again later.");
-        }
-
-        if ("nurse".equals(request.getUserType().toLowerCase())) {
-            Optional<Nurse> nurseOpt = nurseRepository.findByUsername(request.getUsername());
-            if (nurseOpt.isPresent()) {
-                Nurse nurse = nurseOpt.get();
-
-                // Check if account is locked
-                if (accountSecurityService.checkAndUpdateLockStatus(nurse.getId(), "nurse",
-                        httpRequest.getRemoteAddr())) {
-                    authLogService.logAuthentication(
-                            httpRequest,
-                            nurse.getId(),
-                            "nurse",
-                            false,
-                            "Login failed: Account is locked due to too many failed attempts");
-                    throw new LockedException(
-                            "Your account is temporarily locked due to too many failed login attempts. Please try again later.");
-                }
-
-                // Check if the account is verified
-                if (!nurse.getIsVerified()) {
-                    // Log failed login - account not verified
-                    authLogService.logAuthentication(
-                            httpRequest,
-                            nurse.getId(),
-                            "nurse",
-                            false,
-                            "Login failed: Account not verified");
-                    throw new LockedException("Please verify your email address before logging in");
-                }
-
-                if (passwordService.verifyPassword(request.getPassword(), nurse.getSalt(), nurse.getPassword())) {
-                    // Record successful login to reset failed attempts counter
-                    accountSecurityService.recordLoginSuccess(nurse.getId(), "nurse");
-
-                    // Log successful login
-                    authLogService.logAuthentication(
-                            httpRequest,
-                            nurse.getId(),
-                            "nurse",
-                            true,
-                            "Login successful");
-
-                    // Generate JWT token
-                    String token = jwtUtils.generateToken(nurse.getUsername(), nurse.getId(), "nurse");
-                    String fcmToken = fcmTokenService.getFcmTokenForUser(nurse.getId(), "nurse");
-
-                    return new AuthResponse(
-                            nurse.getId(),
-                            nurse.getName(),
-                            nurse.getUsername(),
-                            "nurse",
-                            token,
-                            nurse.getPolyclinicId(),
-                            fcmToken);
-                } else {
-                    // Record failed login attempt
-                    accountSecurityService.recordLoginFailure(nurse.getId(), "nurse", httpRequest.getRemoteAddr());
-
-                    // Log failed login - incorrect password
-                    authLogService.logAuthentication(
-                            httpRequest,
-                            nurse.getId(),
-                            "nurse",
-                            false,
-                            "Incorrect password");
-                }
-            } else {
-                // Log failed login - user not found
-                authLogService.logAuthentication(
-                        httpRequest,
-                        0,
-                        "nurse",
-                        false,
-                        "Username not found: " + request.getUsername());
-            }
-        } else if ("doctor".equals(request.getUserType().toLowerCase())) {
-            Optional<Doctor> doctorOpt = doctorRepository.findByUsername(request.getUsername());
-            if (doctorOpt.isPresent()) {
-                Doctor doctor = doctorOpt.get();
-
-                // Check if account is locked
-                if (accountSecurityService.checkAndUpdateLockStatus(doctor.getId(), "doctor",
-                        httpRequest.getRemoteAddr())) {
-                    authLogService.logAuthentication(
-                            httpRequest,
-                            doctor.getId(),
-                            "doctor",
-                            false,
-                            "Login failed: Account is locked due to too many failed attempts");
-                    throw new LockedException(
-                            "Your account is temporarily locked due to too many failed login attempts. Please try again later.");
-                }
-
-                // Check if the account is verified
-                if (!doctor.getIsVerified()) {
-                    // Log failed login - account not verified
-                    authLogService.logAuthentication(
-                            httpRequest,
-                            doctor.getId(),
-                            "doctor",
-                            false,
-                            "Login failed: Account not verified");
-                    throw new LockedException("Please verify your email address before logging in");
-                }
-
-                if (passwordService.verifyPassword(request.getPassword(), doctor.getSalt(), doctor.getPassword())) {
-                    // Record successful login to reset failed attempts counter
-                    accountSecurityService.recordLoginSuccess(doctor.getId(), "doctor");
-                    // Log successful login
-                    authLogService.logAuthentication(
-                            httpRequest,
-                            doctor.getId(),
-                            "doctor",
-                            true,
-                            "Login successful");
-
-                    // Generate JWT token
-                    String token = jwtUtils.generateToken(doctor.getUsername(), doctor.getId(), "doctor");
-                    String fcmToken = fcmTokenService.getFcmTokenForUser(doctor.getId(), "doctor");
-
-                    return new AuthResponse(
-                            doctor.getId(),
-                            doctor.getName(),
-                            doctor.getUsername(),
-                            "doctor",
-                            token,
-                            doctor.getPolyclinicId(),
-                            fcmToken);
-                } else {
-                    // Record failed login attempt
-                    accountSecurityService.recordLoginFailure(doctor.getId(), "doctor", httpRequest.getRemoteAddr());
-
-                    // Log failed login - incorrect password
-                    authLogService.logAuthentication(
-                            httpRequest,
-                            doctor.getId(),
-                            "doctor",
-                            false,
-                            "Incorrect password");
-                }
-            } else {
-                // Log failed login - user not found
-                authLogService.logAuthentication(
-                        httpRequest,
-                        0,
-                        "doctor",
-                        false,
-                        "Username not found: " + request.getUsername());
-            }
-        } else if ("admin".equals(request.getUserType().toLowerCase())) {
-            Optional<Admin> adminOpt = adminRepository.findByUsername(request.getUsername());
-            if (adminOpt.isPresent()) {
-                Admin admin = adminOpt.get();
-
-                // Check if account is locked
-                if (accountSecurityService.checkAndUpdateLockStatus(admin.getId(), "admin",
-                        httpRequest.getRemoteAddr())) {
-                    authLogService.logAuthentication(
-                            httpRequest,
-                            admin.getId(),
-                            "admin",
-                            false,
-                            "Login failed: Account is locked due to too many failed attempts");
-                    throw new LockedException(
-                            "Your account is temporarily locked due to too many failed login attempts. Please try again later.");
-                }
-
-                if (passwordService.verifyPassword(request.getPassword(), admin.getSalt(), admin.getPassword())) {
-                    // Record successful login to reset failed attempts counter
-                    accountSecurityService.recordLoginSuccess(admin.getId(), "admin");
-                    // Log successful login
-                    authLogService.logAuthentication(
-                            httpRequest,
-                            admin.getId(),
-                            "admin",
-                            true,
-                            "Login successful");
-
-                    // Generate JWT token with admin level
-                    String token = jwtUtils.generateToken(admin.getUsername(), admin.getId(), "admin", admin.getLevel());
-
-                    return new AuthResponse(
-                            admin.getId(),
-                            admin.getUsername(),
-                            admin.getUsername(),
-                            "admin",
-                            token,
-                            0,
-                            null,
-                            admin.getLevel());
-                } else {
-                    // Record failed login attempt
-                    accountSecurityService.recordLoginFailure(admin.getId(), "admin", httpRequest.getRemoteAddr());
-
-                    // Log failed login - incorrect password
-                    authLogService.logAuthentication(
-                            httpRequest,
-                            admin.getId(),
-                            "admin",
-                            false,
-                            "Incorrect password");
-                }
-            } else {
-                // Log failed login - user not found
-                authLogService.logAuthentication(
-                        httpRequest,
-                        0,
-                        "admin",
-                        false,
-                        "Username not found: " + request.getUsername());
-            }
-        }
-
-        // Add this to prevent timing attacks
-        securityDelayService.applyRandomDelay();
-
-        // If we get here, authentication failed
-        throw new BadCredentialsException("Invalid username or password");
-    }
-
+    
+    
     /**
-     * Verify if a password is valid for a given username and role.
-     * 
-     * @param username    the username to check
-     * @param role        the role of the user (nurse, doctor, admin)
-     * @param password    the password to verify
-     * @param httpRequest the HTTP request
-     * @return true if the password is valid, false otherwise
+     * Authenticate user (supports both username and email login)
      */
-    public boolean verifyPassword(String username, String role, String password, HttpServletRequest httpRequest) {
+    @Transactional
+    public AuthResponse login(LoginRequest request, HttpServletRequest httpRequest) {
         try {
-            if ("nurse".equals(role.toLowerCase())) {
-                Optional<Nurse> nurseOpt = nurseRepository.findByUsername(username);
-                if (nurseOpt.isPresent()) {
-                    Nurse nurse = nurseOpt.get();
-                    boolean valid = passwordService.verifyPassword(password, nurse.getSalt(), nurse.getPassword());
-
-                    // Log the verification attempt
-                    authLogService.logAuthentication(
-                            httpRequest,
-                            nurse.getId(),
-                            "nurse",
-                            valid,
-                            valid ? "Password verification successful" : "Password verification failed");
-
-                    return valid;
+            String userType = request.getUserType() != null ? request.getUserType().toLowerCase() : null;
+            
+            // If userType is specified, only search in that specific type
+            if ("admin".equals(userType)) {
+                // Only search in admin table
+                Optional<Admin> adminOpt = adminRepository.findByUsernameOrEmail(
+                    request.getUsername(), request.getUsername());
+                
+                if (adminOpt.isPresent()) {
+                    return authenticateAdmin(adminOpt.get(), request.getPassword(), httpRequest);
+                } else {
+                    return AuthResponse.builder()
+                        .success(false)
+                        .message("Invalid admin credentials")
+                        .build();
                 }
-            } else if ("doctor".equals(role.toLowerCase())) {
-                Optional<Doctor> doctorOpt = doctorRepository.findByUsername(username);
-                if (doctorOpt.isPresent()) {
-                    Doctor doctor = doctorOpt.get();
-                    boolean valid = passwordService.verifyPassword(password, doctor.getSalt(), doctor.getPassword());
-
-                    // Log the verification attempt
-                    authLogService.logAuthentication(
-                            httpRequest,
-                            doctor.getId(),
-                            "doctor",
-                            valid,
-                            valid ? "Password verification successful" : "Password verification failed");
-
-                    return valid;
+            } else if ("user".equals(userType)) {
+                // Only search in user table
+                Optional<User> userOpt = userRepository.findByUsernameOrEmail(
+                    request.getUsername(), request.getUsername());
+                
+                if (userOpt.isPresent()) {
+                    return authenticateUser(userOpt.get(), request.getPassword(), httpRequest);
+                } else {
+                    return AuthResponse.builder()
+                        .success(false)
+                        .message("Invalid user credentials")
+                        .build();
                 }
-            } else if ("admin".equals(role.toLowerCase())) {
-                Optional<Admin> adminOpt = adminRepository.findByUsername(username);
+            } else {
+                // Legacy mode: try both tables (user first, then admin)
+                Optional<User> userOpt = userRepository.findByUsernameOrEmail(
+                    request.getUsername(), request.getUsername());
+                    
+                if (userOpt.isPresent()) {
+                    return authenticateUser(userOpt.get(), request.getPassword(), httpRequest);
+                }
+                
+                Optional<Admin> adminOpt = adminRepository.findByUsernameOrEmail(
+                    request.getUsername(), request.getUsername());
+                    
+                if (adminOpt.isPresent()) {
+                    return authenticateAdmin(adminOpt.get(), request.getPassword(), httpRequest);
+                }
+                
+                return AuthResponse.builder()
+                    .success(false)
+                    .message("Invalid credentials")
+                    .build();
+            }
+            
+        } catch (Exception e) {
+            log.error("Login failed for user: {}", request.getUsername(), e);
+            return AuthResponse.builder()
+                .success(false)
+                .message("Login failed. Please try again.")
+                .build();
+        }
+    }
+    
+    private AuthResponse authenticateUser(User user, String password, HttpServletRequest httpRequest) {
+        // Check if account is active
+        if (!user.getIsActive()) {
+            return AuthResponse.builder()
+                .success(false)
+                .message("Account is deactivated")
+                .build();
+        }
+        
+        // Check if account is locked
+        if (user.getLockedUntil() != null && user.getLockedUntil().isAfter(LocalDateTime.now())) {
+            return AuthResponse.builder()
+                .success(false)
+                .message("Account is temporarily locked. Please try again later.")
+                .build();
+        }
+        
+        // Verify password
+        boolean isValidPassword = passwordService.verifyPassword(password, user.getSalt(), user.getPasswordHash());
+        
+        if (!isValidPassword) {
+            // Increment login attempts
+            user.setLoginAttempts(user.getLoginAttempts() + 1);
+            
+            // Lock account after 5 failed attempts
+            if (user.getLoginAttempts() >= 5) {
+                user.setLockedUntil(LocalDateTime.now().plusMinutes(15));
+            }
+            
+            userRepository.save(user);
+            
+            return AuthResponse.builder()
+                .success(false)
+                .message("Invalid credentials")
+                .build();
+        }
+        
+        // Reset login attempts on successful login
+        user.setLoginAttempts(0);
+        user.setLockedUntil(null);
+        user.setLastLoginAt(LocalDateTime.now());
+        userRepository.save(user);
+        
+        // Generate tokens
+        String accessToken = jwtUtils.generateToken(user.getUsername(), user.getId(), "user", null);
+        String refreshToken = jwtUtils.generateRefreshToken(user.getUsername());
+        
+        return AuthResponse.builder()
+            .success(true)
+            .message("Login successful")
+            .accessToken(accessToken)
+            .refreshToken(refreshToken)
+            .expiresIn(jwtUtils.getAccessTokenExpiration())
+            .user(AuthResponse.UserInfo.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .profilePicture(user.getProfilePicture())
+                .isActive(user.getIsActive())
+                .emailVerified(user.getEmailVerified())
+                .userType("user")
+                .lastLoginAt(user.getLastLoginAt())
+                .build())
+            .build();
+    }
+    
+    private AuthResponse authenticateAdmin(Admin admin, String password, HttpServletRequest httpRequest) {
+        // Check if account is active
+        if (!admin.getIsActive()) {
+            return AuthResponse.builder()
+                .success(false)
+                .message("Admin account is deactivated")
+                .build();
+        }
+        
+        // Check if account is locked
+        if (admin.getLockedUntil() != null && admin.getLockedUntil().isAfter(LocalDateTime.now())) {
+            return AuthResponse.builder()
+                .success(false)
+                .message("Admin account is temporarily locked. Please try again later.")
+                .build();
+        }
+        
+        // Verify password
+        boolean isValidPassword = passwordService.verifyPassword(password, admin.getSalt(), admin.getPasswordHash());
+        
+        if (!isValidPassword) {
+            // Increment login attempts
+            admin.setLoginAttempts(admin.getLoginAttempts() + 1);
+            
+            // Lock account after 5 failed attempts
+            if (admin.getLoginAttempts() >= 5) {
+                admin.setLockedUntil(LocalDateTime.now().plusMinutes(15));
+            }
+            
+            adminRepository.save(admin);
+            
+            return AuthResponse.builder()
+                .success(false)
+                .message("Invalid credentials")
+                .build();
+        }
+        
+        // Reset login attempts on successful login
+        admin.setLoginAttempts(0);
+        admin.setLockedUntil(null);
+        admin.setLastLoginAt(LocalDateTime.now());
+        adminRepository.save(admin);
+        
+        // Generate tokens with admin level
+        String accessToken = jwtUtils.generateToken(admin.getUsername(), admin.getId(), "admin", admin.getLevel());
+        String refreshToken = jwtUtils.generateRefreshToken(admin.getUsername());
+        
+        return AuthResponse.builder()
+            .success(true)
+            .message("Admin login successful")
+            .accessToken(accessToken)
+            .refreshToken(refreshToken)
+            .expiresIn(jwtUtils.getAccessTokenExpiration())
+            .user(AuthResponse.UserInfo.builder()
+                .id(admin.getId())
+                .username(admin.getUsername())
+                .email(admin.getEmail())
+                .firstName(admin.getFirstName())
+                .lastName(admin.getLastName())
+                .profilePicture(admin.getProfilePicture())
+                .isActive(admin.getIsActive())
+                .emailVerified(true) // Admins are auto-verified
+                .userType("admin")
+                .level(admin.getLevel())
+                .lastLoginAt(admin.getLastLoginAt())
+                .build())
+            .build();
+    }
+    
+    /**
+     * Verify user password (for password change operations)
+     */
+    public boolean verifyPassword(VerifyPasswordRequest request, HttpServletRequest httpRequest) {
+        try {
+            // Try to find user first
+            Optional<User> userOpt = userRepository.findByUsernameOrEmail(
+                request.getUsername(), request.getUsername());
+            
+            if (userOpt.isPresent()) {
+                return passwordService.verifyPassword(request.getPassword(), 
+                    userOpt.get().getSalt(), userOpt.get().getPasswordHash());
+            }
+            
+            // Try to find admin
+            Optional<Admin> adminOpt = adminRepository.findByUsernameOrEmail(
+                request.getUsername(), request.getUsername());
+            
+            if (adminOpt.isPresent()) {
+                return passwordService.verifyPassword(request.getPassword(), 
+                    adminOpt.get().getSalt(), adminOpt.get().getPasswordHash());
+            }
+            
+            return false;
+            
+        } catch (Exception e) {
+            log.error("Password verification failed for user: {}", request.getUsername(), e);
+            return false;
+        }
+    }
+    
+    /**
+     * Initiate forgot password process
+     */
+    @Transactional
+    public boolean forgotPassword(ForgotPasswordRequest request, HttpServletRequest httpRequest) {
+        try {
+            String clientIp = getClientIpAddress(httpRequest);
+            
+            // Try to find user by email
+            Optional<User> userOpt = userRepository.findByEmail(request.getEmail());
+            if (userOpt.isPresent()) {
+                createPasswordResetToken(userOpt.get().getId(), "user", request.getEmail(), clientIp);
+                return true;
+            }
+            
+            // Try to find admin by email
+            Optional<Admin> adminOpt = adminRepository.findByEmail(request.getEmail());
+            if (adminOpt.isPresent()) {
+                createPasswordResetToken(adminOpt.get().getId(), "admin", request.getEmail(), clientIp);
+                return true;
+            }
+            
+            // Return true even if email not found for security reasons
+            return true;
+            
+        } catch (Exception e) {
+            log.error("Forgot password failed for email: {}", request.getEmail(), e);
+            return false;
+        }
+    }
+    
+    private void createPasswordResetToken(Long userId, String userType, String email, String clientIp) {
+        // Remove any existing tokens for this user
+        passwordResetTokenRepository.deleteByUserIdAndUserType(userId, userType);
+        
+        // Create new token
+        PasswordResetToken resetToken = new PasswordResetToken(userId, userType, clientIp);
+        passwordResetTokenRepository.save(resetToken);
+        
+        // Send reset email
+        emailService.sendPasswordResetEmail(email, resetToken.getToken(), 
+            getUserNameByEmailAndType(email, userType));
+    }
+    
+    /**
+     * Reset password using token
+     */
+    @Transactional
+    public boolean resetPassword(ResetPasswordRequest request, HttpServletRequest httpRequest) {
+        try {
+            Optional<PasswordResetToken> tokenOpt = passwordResetTokenRepository.findByToken(request.getToken());
+            
+            if (tokenOpt.isEmpty()) {
+                return false;
+            }
+            
+            PasswordResetToken resetToken = tokenOpt.get();
+            
+            // Check if token is expired
+            if (resetToken.isExpired()) {
+                passwordResetTokenRepository.delete(resetToken);
+                return false;
+            }
+            
+            // Check if too many attempts
+            if (resetToken.hasTooManyAttempts()) {
+                passwordResetTokenRepository.delete(resetToken);
+                return false;
+            }
+            
+            // Update password
+            String salt = passwordService.generateSalt();
+            String hashedPassword = passwordService.hashPassword(request.getNewPassword(), salt);
+            
+            if ("user".equals(resetToken.getUserType())) {
+                Optional<User> userOpt = userRepository.findById(resetToken.getUserId());
+                if (userOpt.isPresent()) {
+                    User user = userOpt.get();
+                    user.setPasswordHash(hashedPassword);
+                    user.setSalt(salt);
+                    user.setLoginAttempts(0); // Reset login attempts
+                    user.setLockedUntil(null); // Unlock account
+                    userRepository.save(user);
+                }
+            } else if ("admin".equals(resetToken.getUserType())) {
+                Optional<Admin> adminOpt = adminRepository.findById(resetToken.getUserId());
                 if (adminOpt.isPresent()) {
                     Admin admin = adminOpt.get();
-                    boolean valid = passwordService.verifyPassword(password, admin.getSalt(), admin.getPassword());
-
-                    // Log the verification attempt
-                    authLogService.logAuthentication(
-                            httpRequest,
-                            admin.getId(),
-                            "admin",
-                            valid,
-                            valid ? "Password verification successful" : "Password verification failed");
-
-                    return valid;
+                    admin.setPasswordHash(hashedPassword);
+                    admin.setSalt(salt);
+                    admin.setLoginAttempts(0); // Reset login attempts
+                    admin.setLockedUntil(null); // Unlock account
+                    adminRepository.save(admin);
                 }
             }
-
-            // Add delay to prevent timing attacks
-            securityDelayService.applyRandomDelay();
-
-            // User not found
-            authLogService.logAuthentication(
-                    httpRequest,
-                    0,
-                    role,
-                    false,
-                    "Password verification failed: User not found");
-
-            return false;
+            
+            // Delete the used token
+            passwordResetTokenRepository.delete(resetToken);
+            
+            return true;
+            
         } catch (Exception e) {
-            // Log error
-            authLogService.logAuthentication(
-                    httpRequest,
-                    0,
-                    role,
-                    false,
-                    "Password verification error: " + e.getMessage());
-
+            log.error("Password reset failed for token: {}", request.getToken(), e);
             return false;
         }
+    }
+    
+    /**
+     * Verify email using verification token
+     */
+    @Transactional
+    public boolean verifyEmail(String token) {
+        try {
+            Optional<VerificationToken> tokenOpt = verificationTokenRepository.findByToken(token);
+            
+            if (tokenOpt.isEmpty()) {
+                return false;
+            }
+            
+            VerificationToken verificationToken = tokenOpt.get();
+            
+            // Check if token is expired
+            if (verificationToken.isExpired()) {
+                verificationTokenRepository.delete(verificationToken);
+                return false;
+            }
+            
+            // Mark user as verified
+            if ("user".equals(verificationToken.getUserType())) {
+                Optional<User> userOpt = userRepository.findById(verificationToken.getUserId());
+                if (userOpt.isPresent()) {
+                    User user = userOpt.get();
+                    user.setEmailVerified(true);
+                    userRepository.save(user);
+                }
+            }
+            
+            // Delete the used token
+            verificationTokenRepository.delete(verificationToken);
+            
+            return true;
+            
+        } catch (Exception e) {
+            log.error("Email verification failed for token: {}", token, e);
+            return false;
+        }
+    }
+    
+    /**
+     * Get client IP address from request
+     */
+    private String getClientIpAddress(HttpServletRequest request) {
+        String xForwardedFor = request.getHeader("X-Forwarded-For");
+        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
+            return xForwardedFor.split(",")[0];
+        }
+        
+        String xRealIp = request.getHeader("X-Real-IP");
+        if (xRealIp != null && !xRealIp.isEmpty()) {
+            return xRealIp;
+        }
+        
+        return request.getRemoteAddr();
+    }
+    
+    /**
+     * Helper method to get user name by email and type
+     */
+    private String getUserNameByEmailAndType(String email, String userType) {
+        if ("user".equals(userType)) {
+            Optional<User> userOpt = userRepository.findByEmail(email);
+            if (userOpt.isPresent()) {
+                User user = userOpt.get();
+                return user.getFirstName() != null ? user.getFirstName() : user.getUsername();
+            }
+        } else if ("admin".equals(userType)) {
+            Optional<Admin> adminOpt = adminRepository.findByEmail(email);
+            if (adminOpt.isPresent()) {
+                Admin admin = adminOpt.get();
+                return admin.getFirstName() != null ? admin.getFirstName() : admin.getUsername();
+            }
+        }
+        return "User";
     }
 }

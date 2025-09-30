@@ -3,7 +3,6 @@ package com.g4.chatbot.models;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Entity
 @Table(name = "password_reset_tokens")
@@ -11,16 +10,16 @@ import java.util.UUID;
 public class PasswordResetToken {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private Long id;
     
     @Column(nullable = false, unique = true)
     private String token;
     
     @Column(name = "user_id", nullable = false)
-    private Integer userId;
+    private Long userId;
     
     @Column(name = "user_type", nullable = false)
-    private String userType;
+    private String userType; // "user" or "admin"
     
     @Column(name = "expiry_date", nullable = false)
     private LocalDateTime expiryDate;
@@ -37,7 +36,14 @@ public class PasswordResetToken {
     private String requestingIp;
     
     public PasswordResetToken() {
-        this.token = UUID.randomUUID().toString();
+        // Default constructor for JPA
+    }
+    
+    public PasswordResetToken(Long userId, String userType, String requestingIp) {
+        this.token = java.util.UUID.randomUUID().toString();
+        this.userId = userId;
+        this.userType = userType;
+        this.requestingIp = requestingIp;
         this.createdDate = LocalDateTime.now();
         // Password reset tokens should expire quickly - 15 minutes
         this.expiryDate = this.createdDate.plusMinutes(15);

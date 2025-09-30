@@ -25,6 +25,39 @@ public class JwtUtils {
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
+    public String generateToken(String username, Long userId, String userType) {
+        Map<String, Object> claimsMap = new HashMap<>();
+        claimsMap.put("userId", userId);
+        claimsMap.put("userType", userType);
+        
+        return Jwts.builder()
+                .claims(claimsMap)
+                .subject(username)
+                .issuer(jwtConfig.getIssuer())
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + jwtConfig.getExpiration()))
+                .signWith(getSigningKey())
+                .compact();
+    }
+
+    public String generateToken(String username, Long userId, String userType, Integer adminLevel) {
+        Map<String, Object> claimsMap = new HashMap<>();
+        claimsMap.put("userId", userId);
+        claimsMap.put("userType", userType);
+        if ("admin".equals(userType) && adminLevel != null) {
+            claimsMap.put("adminLevel", adminLevel);
+        }
+        
+        return Jwts.builder()
+                .claims(claimsMap)
+                .subject(username)
+                .issuer(jwtConfig.getIssuer())
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + jwtConfig.getExpiration()))
+                .signWith(getSigningKey())
+                .compact();
+    }
+
     public String generateToken(String username, Integer userId, String userType) {
         Map<String, Object> claimsMap = new HashMap<>();
         claimsMap.put("userId", userId);
@@ -58,6 +91,24 @@ public class JwtUtils {
                 .compact();
     }
     
+    public String generateRefreshToken(String username) {
+        return Jwts.builder()
+                .subject(username)
+                .issuer(jwtConfig.getIssuer())
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + jwtConfig.getRefreshExpiration()))
+                .signWith(getSigningKey())
+                .compact();
+    }
+    
+    public Long getAccessTokenExpiration() {
+        return jwtConfig.getExpirationInSeconds();
+    }
+    
+    public Long getRefreshTokenExpiration() {
+        return jwtConfig.getRefreshExpirationInSeconds();
+    }
+    
     public boolean validateToken(String token) {
         try {
             Jwts.parser()
@@ -76,6 +127,16 @@ public class JwtUtils {
     
     public Integer extractUserId(String token) {
         return extractAllClaims(token).get("userId", Integer.class);
+    }
+    
+    public Long extractUserIdAsLong(String token) {
+        Object userId = extractAllClaims(token).get("userId");
+        if (userId instanceof Integer) {
+            return ((Integer) userId).longValue();
+        } else if (userId instanceof Long) {
+            return (Long) userId;
+        }
+        return null;
     }
     
     public String extractUserType(String token) {

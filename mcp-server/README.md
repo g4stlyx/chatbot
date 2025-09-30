@@ -1,0 +1,1 @@
+* check "postman_files" folder to export json files and test/see the endpoints in postman app.

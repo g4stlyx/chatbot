@@ -1,11 +1,9 @@
 package com.g4.chatbot.controllers;
 
-import com.g4.chatbot.dto.AuthResponse;
-import com.g4.chatbot.dto.LoginRequest;
-import com.g4.chatbot.dto.RegisterRequest;
+import com.g4.chatbot.dto.auth.*;
 import com.g4.chatbot.services.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,86 +13,159 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/auth")
+@Slf4j
 public class AuthController {
-
+    
     @Autowired
     private AuthService authService;
     
-    @Autowired
-    private InputValidationService inputValidationService;
-
+    /**
+     * Register a new user
+     */
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request, 
-                                               HttpServletRequest httpRequest) {
-        // Additional validation on the username
-        request.setUsername(inputValidationService.validateAndSanitizeUsername(request.getUsername()));
+    public ResponseEntity<AuthResponse> register(
+            @RequestBody RegisterRequest request,
+            HttpServletRequest httpRequest) {
         
-        // Additional validation on the email
-        if (request.getEmail() != null) {
-            request.setEmail(inputValidationService.validateAndSanitizeEmail(request.getEmail()));
+        log.info("Registration attempt for username: {}", request.getUsername());
+        
+        AuthResponse response = authService.register(request, httpRequest);
+        
+        if (response.isSuccess()) {
+            log.info("Registration successful for username: {}", request.getUsername());
+            return ResponseEntity.ok(response);
+        } else {
+            log.warn("Registration failed for username: {} - {}", request.getUsername(), response.getMessage());
+            return ResponseEntity.badRequest().body(response);
         }
-        
-        // Additional validation on the phone number
-        if (request.getPhoneNumber() != null) {
-            request.setPhoneNumber(inputValidationService.validateAndSanitizePhone(request.getPhoneNumber()));
-        }
-        
-        // Validate name
-        if (request.getName() != null) {
-            request.setName(inputValidationService.validateAndSanitizeText(request.getName(), "Name", 100, true));
-        }
-        
-        // Password is validated but not sanitized
-        inputValidationService.validatePassword(request.getPassword());
-        
-        return ResponseEntity.ok(authService.register(request, httpRequest));
-    }
-
-    @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request, 
-                                            HttpServletRequest httpRequest) {
-        // Validate and sanitize username
-        request.setUsername(inputValidationService.validateAndSanitizeUsername(request.getUsername()));
-        
-        // Password is validated but not sanitized
-        inputValidationService.validatePassword(request.getPassword());
-        
-        return ResponseEntity.ok(authService.login(request, httpRequest));
     }
     
     /**
-     * Endpoint to verify if a password is valid for a given username and role.
-     * This is primarily used before allowing a user to change their password.
+     * Authenticate user login
+     */
+    @PostMapping("/login")
+    public ResponseEntity<AuthResponse> login(
+            @RequestBody LoginRequest request,
+            HttpServletRequest httpRequest) {
+        
+        log.info("Login attempt for username: {}", request.getUsername());
+        
+        AuthResponse response = authService.login(request, httpRequest);
+        
+        if (response.isSuccess()) {
+            log.info("Login successful for username: {}", request.getUsername());
+            return ResponseEntity.ok(response);
+        } else {
+            log.warn("Login failed for username: {} - {}", request.getUsername(), response.getMessage());
+            return ResponseEntity.status(401).body(response);
+        }
+    }
+    
+    /**
+     * Verify password for password change operations
      */
     @PostMapping("/verify-password")
     public ResponseEntity<Map<String, Object>> verifyPassword(
-            @RequestBody Map<String, String> request,
+            @RequestBody VerifyPasswordRequest request,
             HttpServletRequest httpRequest) {
         
-        // Extract values
-        String username = request.get("username");
-        String role = request.get("role");
-        String password = request.get("password");
+        log.info("Password verification attempt for username: {}", request.getUsername());
         
-        // Validate required fields
-        if (username == null || role == null || password == null) {
-            throw new InputValidationException("Username, role, and password are required");
-        }
-        
-        // Validate and sanitize username
-        username = inputValidationService.validateAndSanitizeUsername(username);
-        
-        // Validate and sanitize role
-        role = inputValidationService.validateAndSanitizeText(role, "Role", 50, true);
-        
-        // Validate password (no sanitization)
-        inputValidationService.validatePassword(password);
-        
-        boolean isValid = authService.verifyPassword(username, role, password, httpRequest);
+        boolean isValid = authService.verifyPassword(request, httpRequest);
         
         Map<String, Object> response = new HashMap<>();
         response.put("valid", isValid);
         response.put("message", isValid ? "Password is valid" : "Password is invalid");
+        
+        if (isValid) {
+            log.info("Password verification successful for username: {}", request.getUsername());
+        } else {
+            log.warn("Password verification failed for username: {}", request.getUsername());
+        }
+        
+        return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * Initiate forgot password process
+     */
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Map<String, Object>> forgotPassword(
+            @RequestBody ForgotPasswordRequest request,
+            HttpServletRequest httpRequest) {
+        
+        log.info("Password reset request for email: {}", request.getEmail());
+        
+        boolean success = authService.forgotPassword(request, httpRequest);
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", success);
+        response.put("message", "If the email exists in our system, a password reset link has been sent.");
+        
+        return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * Reset password using token
+     */
+    @PostMapping("/reset-password")
+    public ResponseEntity<Map<String, Object>> resetPassword(
+            @RequestBody ResetPasswordRequest request,
+            HttpServletRequest httpRequest) {
+        
+        log.info("Password reset attempt with token");
+        
+        boolean success = authService.resetPassword(request, httpRequest);
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", success);
+        response.put("message", success ? 
+            "Password has been reset successfully. You can now login with your new password." :
+            "Invalid or expired reset token. Please request a new password reset.");
+        
+        if (success) {
+            log.info("Password reset successful");
+        } else {
+            log.warn("Password reset failed - invalid or expired token");
+        }
+        
+        return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * Verify email address using verification token
+     */
+    @GetMapping("/verify-email")
+    public ResponseEntity<Map<String, Object>> verifyEmail(@RequestParam String token) {
+        
+        log.info("Email verification attempt with token");
+        
+        boolean success = authService.verifyEmail(token);
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", success);
+        response.put("message", success ? 
+            "Email verified successfully. You can now login to your account." :
+            "Invalid or expired verification token.");
+        
+        if (success) {
+            log.info("Email verification successful");
+        } else {
+            log.warn("Email verification failed - invalid or expired token");
+        }
+        
+        return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * Health check endpoint for authentication service
+     */
+    @GetMapping("/health")
+    public ResponseEntity<Map<String, Object>> healthCheck() {
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", "UP");
+        response.put("service", "Authentication Service");
+        response.put("timestamp", System.currentTimeMillis());
         
         return ResponseEntity.ok(response);
     }

@@ -5,15 +5,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
-
-import com.g4.chatbot.repos.NurseRepository;
-import com.g4.chatbot.repos.VerificationTokenRepository;
-
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
-
-import com.g4.chatbot.repos.DoctorRepository;
-import com.g4.chatbot.models.VerificationToken;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
@@ -22,15 +15,6 @@ public class EmailService {
 
     @Autowired
     private JavaMailSender mailSender;
-
-    @Autowired
-    private NurseRepository nurseRepository;
-
-    @Autowired
-    private DoctorRepository doctorRepository;
-
-    @Autowired
-    private VerificationTokenRepository tokenRepository;
 
     @Autowired
     private TemplateEngine templateEngine;
@@ -73,39 +57,6 @@ public class EmailService {
             // Log error but don't prevent registration
             System.err.println("Failed to send verification email: " + e.getMessage());
         }
-    }
-
-    public void resendVerificationIfEmailExists(String email) {
-        // Check for nurse with this email
-        nurseRepository.findByEmail(email).ifPresent(nurse -> {
-            // Create a new token if needed
-            VerificationToken token = tokenRepository.findByUserIdAndUserType(nurse.getId(), "nurse")
-                    .orElseGet(() -> {
-                        VerificationToken newToken = new VerificationToken();
-                        newToken.setUserId(nurse.getId());
-                        newToken.setUserType("nurse");
-                        return tokenRepository.save(newToken);
-                    });
-
-            // Send email with token
-            sendVerificationEmail(email, token.getToken(), nurse.getName());
-        });
-
-        // Also check for doctor with this email
-        doctorRepository.findByEmail(email).ifPresent(doctor -> {
-            // Same process for doctor
-            VerificationToken token = tokenRepository.findByUserIdAndUserType(doctor.getId(), "doctor")
-                    .orElseGet(() -> {
-                        VerificationToken newToken = new VerificationToken();
-                        newToken.setUserId(doctor.getId());
-                        newToken.setUserType("doctor");
-                        return tokenRepository.save(newToken);
-                    });
-
-            sendVerificationEmail(email, token.getToken(), doctor.getName());
-        });
-
-        // Do nothing if email doesn't exist - but don't indicate this to the user
     }
 
     public void sendPasswordResetEmail(String to, String token, String name) {

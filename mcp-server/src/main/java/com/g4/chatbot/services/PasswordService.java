@@ -14,21 +14,40 @@ public class PasswordService {
     @Value("${app.security.pepper}")
     private String pepper;
     
-    // Increase iterations for better security (adjust based on your server performance)
-    private static final int ITERATIONS = 12;
-    private static final int MEMORY = 65536;    // 64MB
-    private static final int PARALLELISM = 2;   // Can increase based on server CPU cores
+    // Argon2 configuration from environment variables
+    @Value("${app.security.argon2.memory-cost}")
+    private int memoryCost;
     
-    private final Argon2 argon2 = Argon2Factory.create(
-            Argon2Factory.Argon2Types.ARGON2id, // Best choice for general password hashing
-            32,  // Salt length
-            64   // Hash length
-    );
+    @Value("${app.security.argon2.time-cost}")
+    private int timeCost;
+    
+    @Value("${app.security.argon2.parallelism}")
+    private int parallelism;
+    
+    @Value("${app.security.argon2.salt-length}")
+    private int saltLength;
+    
+    @Value("${app.security.argon2.hash-length}")
+    private int hashLength;
+    
+    private Argon2 argon2;
+    
+    // Initialize Argon2 after properties are injected
+    private Argon2 getArgon2() {
+        if (argon2 == null) {
+            argon2 = Argon2Factory.create(
+                Argon2Factory.Argon2Types.ARGON2id,
+                saltLength,
+                hashLength
+            );
+        }
+        return argon2;
+    }
     
     // Generate a random salt
     public String generateSalt() {
         SecureRandom random = new SecureRandom();
-        byte[] salt = new byte[32];
+        byte[] salt = new byte[saltLength];
         random.nextBytes(salt);
         return Base64.getEncoder().encodeToString(salt);
     }
@@ -41,7 +60,7 @@ public class PasswordService {
         // Hash the password
         char[] passwordChars = (passwordWithPepper + salt).toCharArray();
         try {
-            return argon2.hash(ITERATIONS, MEMORY, PARALLELISM, passwordChars);
+            return getArgon2().hash(timeCost, memoryCost, parallelism, passwordChars);
         } finally {
             // Clear the password from memory for security
             for (int i = 0; i < passwordChars.length; i++) {
@@ -58,7 +77,7 @@ public class PasswordService {
         // Verify the password
         char[] passwordChars = (passwordWithPepper + salt).toCharArray();
         try {
-            return argon2.verify(hash, passwordChars);
+            return getArgon2().verify(hash, passwordChars);
         } finally {
             // Clear the password from memory
             for (int i = 0; i < passwordChars.length; i++) {
