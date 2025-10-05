@@ -1,0 +1,310 @@
+{
+	"info": {
+		"_postman_id": "chat-api-collection",
+		"name": "Chat API - MCP Server (Phase 1)",
+		"description": "Complete collection for testing Chat endpoints with Ollama/Llama3 integration",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Chat",
+			"item": [
+				{
+					"name": "1. Chat (Non-Streaming)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.sessionId) {",
+									"        pm.collectionVariables.set(\"session_id\", jsonData.sessionId);",
+									"        console.log(\"Session ID saved:\", jsonData.sessionId);",
+									"    }",
+									"    if (jsonData.userMessageId) {",
+									"        pm.collectionVariables.set(\"user_message_id\", jsonData.userMessageId);",
+									"    }",
+									"    if (jsonData.assistantMessageId) {",
+									"        pm.collectionVariables.set(\"assistant_message_id\", jsonData.assistantMessageId);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"message\": \"Hello! Can you explain what machine learning is in simple terms?\",\n  \"model\": \"llama3\",\n  \"sessionTitle\": \"ML Discussion\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/chat",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"chat"
+							]
+						},
+						"description": "Send a chat message and wait for complete response. Auto-creates session if not specified."
+					},
+					"response": []
+				},
+				{
+					"name": "2. Chat with Existing Session",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"message\": \"Can you give me an example?\",\n  \"sessionId\": \"{{session_id}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/chat",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"chat"
+							]
+						},
+						"description": "Continue conversation in existing session. Uses saved session_id."
+					},
+					"response": []
+				},
+				{
+					"name": "3. Chat for Specific Session (URL)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"message\": \"Tell me more about this topic\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/chat/sessions/{{session_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"chat",
+								"sessions",
+								"{{session_id}}"
+							]
+						},
+						"description": "Chat with session ID in URL path."
+					},
+					"response": []
+				},
+				{
+					"name": "4. Chat Streaming (SSE)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							},
+							{
+								"key": "Accept",
+								"value": "text/event-stream"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"message\": \"Write a short poem about programming\",\n  \"model\": \"llama3\",\n  \"sessionTitle\": \"Poetry Session\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/chat/stream",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"chat",
+								"stream"
+							]
+						},
+						"description": "Chat with streaming response (Server-Sent Events). You'll see chunks arrive in real-time!"
+					},
+					"response": []
+				},
+				{
+					"name": "5. Chat Streaming for Session",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							},
+							{
+								"key": "Accept",
+								"value": "text/event-stream"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"message\": \"Continue the conversation...\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/chat/sessions/{{session_id}}/stream",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"chat",
+								"sessions",
+								"{{session_id}}",
+								"stream"
+							]
+						},
+						"description": "Streaming chat for existing session."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Sessions",
+			"item": [
+				{
+					"name": "Get All Sessions",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/sessions?page=0&size=10",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"sessions"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Get paginated list of all sessions."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Specific Session",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/sessions/{{session_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"sessions",
+								"{{session_id}}"
+							]
+						},
+						"description": "Get details of a specific session including updated message count and token usage."
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "jwt_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "session_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "user_message_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "assistant_message_id",
+			"value": "",
+			"type": "string"
+		}
+	]
+}

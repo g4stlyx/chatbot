@@ -1,5 +1,6 @@
 package com.g4.chatbot.config;
 
+import jakarta.servlet.DispatcherType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -61,6 +62,9 @@ public class SecurityConfig {
                 
                 // Authorization rules based on project plan
                 .authorizeHttpRequests(auth -> auth
+                        // Allow ASYNC dispatcher for SSE streaming (no re-authentication)
+                        .dispatcherTypeMatchers(DispatcherType.ASYNC).permitAll()
+                        
                         //TODO: public endpoints, check them well
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers("/api/v1/health/**").permitAll()
@@ -84,6 +88,7 @@ public class SecurityConfig {
                         
                         // All other requests need authentication
                         .anyRequest().authenticated())
+                
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
