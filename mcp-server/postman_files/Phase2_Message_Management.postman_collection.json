@@ -1,362 +1,483 @@
 {
-  "info": {
-    "name": "3. Message Management (Phase 2)",
-    "description": "Complete CRUD operations for chat messages including editing, deletion, and regeneration",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-  },
-  "item": [
-    {
-      "name": "1. Get Message History",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{jwt_token}}",
-            "type": "text"
-          }
-        ],
-        "url": {
-          "raw": "{{base_url}}/api/v1/sessions/{{session_id}}/messages",
-          "host": ["{{base_url}}"],
-          "path": ["api", "v1", "sessions", "{{session_id}}", "messages"]
-        },
-        "description": "Get all messages in a chat session (conversation history)"
-      }
-    },
-    {
-      "name": "2. Get Single Message",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{jwt_token}}",
-            "type": "text"
-          }
-        ],
-        "url": {
-          "raw": "{{base_url}}/api/v1/messages/{{message_id}}",
-          "host": ["{{base_url}}"],
-          "path": ["api", "v1", "messages", "{{message_id}}"]
-        },
-        "description": "Retrieve a specific message by ID"
-      }
-    },
-    {
-      "name": "3a. Edit Message (No Regenerate)",
-      "request": {
-        "method": "PUT",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{jwt_token}}",
-            "type": "text"
-          },
-          {
-            "key": "Content-Type",
-            "value": "application/json",
-            "type": "text"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"content\": \"What is machine learning?\",\n  \"regenerateResponse\": false\n}"
-        },
-        "url": {
-          "raw": "{{base_url}}/api/v1/messages/{{message_id}}",
-          "host": ["{{base_url}}"],
-          "path": ["api", "v1", "messages", "{{message_id}}"]
-        },
-        "description": "Edit message content without regenerating the assistant's response. Good for fixing typos."
-      }
-    },
-    {
-      "name": "3b. Edit Message (With Regenerate)",
-      "request": {
-        "method": "PUT",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{jwt_token}}",
-            "type": "text"
-          },
-          {
-            "key": "Content-Type",
-            "value": "application/json",
-            "type": "text"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"content\": \"What is deep learning?\",\n  \"regenerateResponse\": true\n}"
-        },
-        "url": {
-          "raw": "{{base_url}}/api/v1/messages/{{message_id}}",
-          "host": ["{{base_url}}"],
-          "path": ["api", "v1", "messages", "{{message_id}}"]
-        },
-        "description": "Edit message and regenerate the assistant's response. This will delete all subsequent messages and generate a new response."
-      }
-    },
-    {
-      "name": "4. Delete Message",
-      "request": {
-        "method": "DELETE",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{jwt_token}}",
-            "type": "text"
-          }
-        ],
-        "url": {
-          "raw": "{{base_url}}/api/v1/messages/{{message_id}}",
-          "host": ["{{base_url}}"],
-          "path": ["api", "v1", "messages", "{{message_id}}"]
-        },
-        "description": "Delete a message. If it's a USER message, also deletes the corresponding ASSISTANT response."
-      }
-    },
-    {
-      "name": "5a. Regenerate Last Response (Default Model)",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{jwt_token}}",
-            "type": "text"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": ""
-        },
-        "url": {
-          "raw": "{{base_url}}/api/v1/sessions/{{session_id}}/regenerate",
-          "host": ["{{base_url}}"],
-          "path": ["api", "v1", "sessions", "{{session_id}}", "regenerate"]
-        },
-        "description": "Regenerate the last assistant response using the session's default model"
-      }
-    },
-    {
-      "name": "5b. Regenerate Last Response (Custom Model)",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{jwt_token}}",
-            "type": "text"
-          },
-          {
-            "key": "Content-Type",
-            "value": "application/json",
-            "type": "text"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"model\": \"llama3\"\n}"
-        },
-        "url": {
-          "raw": "{{base_url}}/api/v1/sessions/{{session_id}}/regenerate",
-          "host": ["{{base_url}}"],
-          "path": ["api", "v1", "sessions", "{{session_id}}", "regenerate"]
-        },
-        "description": "Regenerate the last assistant response using a specific model"
-      }
-    },
-    {
-      "name": "TEST FLOW: Complete Message CRUD",
-      "item": [
-        {
-          "name": "Step 1: Create Session",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "var jsonData = pm.response.json();",
-                  "pm.environment.set(\"session_id\", jsonData.sessionId);"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}",
-                "type": "text"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"Message CRUD Test\",\n  \"model\": \"llama3\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/sessions",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "sessions"]
-            }
-          }
-        },
-        {
-          "name": "Step 2: Send First Message",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "// Extract the first message ID from response if available",
-                  "var jsonData = pm.response.json();",
-                  "if (jsonData.messageId) {",
-                  "    pm.environment.set(\"message_id\", jsonData.messageId);",
-                  "}"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}",
-                "type": "text"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"sessionId\": \"{{session_id}}\",\n  \"message\": \"What is machine learning?\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/chat",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "chat"]
-            }
-          }
-        },
-        {
-          "name": "Step 3: Get Message History",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/sessions/{{session_id}}/messages",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "sessions", "{{session_id}}", "messages"]
-            }
-          }
-        },
-        {
-          "name": "Step 4: Edit First Message",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}",
-                "type": "text"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"content\": \"What is deep learning?\",\n  \"regenerateResponse\": true\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/messages/{{message_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "messages", "{{message_id}}"]
-            }
-          }
-        },
-        {
-          "name": "Step 5: Regenerate Response",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/sessions/{{session_id}}/regenerate",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "sessions", "{{session_id}}", "regenerate"]
-            }
-          }
-        },
-        {
-          "name": "Step 6: Delete Message",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/messages/{{message_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "messages", "{{message_id}}"]
-            }
-          }
-        }
-      ]
-    }
-  ],
-  "variable": [
-    {
-      "key": "base_url",
-      "value": "http://localhost:8080",
-      "type": "string"
-    },
-    {
-      "key": "jwt_token",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "session_id",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "message_id",
-      "value": "",
-      "type": "string"
-    }
-  ]
+	"info": {
+		"_postman_id": "e89aa547-ad7e-45d7-a6a5-9db36a98f4f0",
+		"name": "3. Message Management (Phase 2)",
+		"description": "Complete CRUD operations for chat messages including editing, deletion, and regeneration",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "27783651",
+		"_collection_link": "https://kssapi-8302.postman.co/workspace/chatbot-mcp-server~543af950-ce8d-46bb-9dec-7a8956624795/collection/27783651-e89aa547-ad7e-45d7-a6a5-9db36a98f4f0?action=share&source=collection_link&creator=27783651"
+	},
+	"item": [
+		{
+			"name": "TEST FLOW: Complete Message CRUD",
+			"item": [
+				{
+					"name": "Step 1: Create Session",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"pm.environment.set(\"session_id\", jsonData.sessionId);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Message CRUD Test\",\n  \"model\": \"llama3\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/sessions",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"sessions"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Step 2: Send First Message",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Extract the first message ID from response if available",
+									"var jsonData = pm.response.json();",
+									"if (jsonData.messageId) {",
+									"    pm.environment.set(\"userMessageId\", jsonData.messageId);",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"sessionId\": \"{{session_id}}\",\n  \"message\": \"What is machine learning?\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/chat",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"chat"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Step 3: Get Message History",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/sessions/{{session_id}}/messages",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"sessions",
+								"{{session_id}}",
+								"messages"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Step 4: Edit First Message",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"content\": \"What is deep learning?\",\n  \"regenerateResponse\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/messages/{{message_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"messages",
+								"{{message_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Step 5: Regenerate Response",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/sessions/{{session_id}}/regenerate",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"sessions",
+								"{{session_id}}",
+								"regenerate"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Step 6: Delete Message",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/messages/{{message_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"messages",
+								"{{message_id}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "1. Get Message History",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{jwt_token}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/v1/sessions/{{session_id}}/messages",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"sessions",
+						"{{session_id}}",
+						"messages"
+					]
+				},
+				"description": "Get all messages in a chat session (conversation history)"
+			},
+			"response": []
+		},
+		{
+			"name": "2. Get Single Message",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{jwt_token}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/v1/messages/{{message_id}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"messages",
+						"{{message_id}}"
+					]
+				},
+				"description": "Retrieve a specific message by ID"
+			},
+			"response": []
+		},
+		{
+			"name": "3a. Edit Message (No Regenerate)",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{jwt_token}}",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"content\": \"What is machine learning?\",\n  \"regenerateResponse\": false\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/v1/messages/{{message_id}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"messages",
+						"{{message_id}}"
+					]
+				},
+				"description": "Edit message content without regenerating the assistant's response. Good for fixing typos."
+			},
+			"response": []
+		},
+		{
+			"name": "3b. Edit Message (With Regenerate)",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{jwt_token}}",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"content\": \"What is deep learning?\",\n  \"regenerateResponse\": true\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/v1/messages/{{message_id}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"messages",
+						"{{message_id}}"
+					]
+				},
+				"description": "Edit message and regenerate the assistant's response. This will delete all subsequent messages and generate a new response."
+			},
+			"response": []
+		},
+		{
+			"name": "4. Delete Message",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{jwt_token}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/v1/messages/{{message_id}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"messages",
+						"{{message_id}}"
+					]
+				},
+				"description": "Delete a message. If it's a USER message, also deletes the corresponding ASSISTANT response."
+			},
+			"response": []
+		},
+		{
+			"name": "5a. Regenerate Last Response (Default Model)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{jwt_token}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{base_url}}/api/v1/sessions/{{session_id}}/regenerate",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"sessions",
+						"{{session_id}}",
+						"regenerate"
+					]
+				},
+				"description": "Regenerate the last assistant response using the session's default model"
+			},
+			"response": []
+		},
+		{
+			"name": "5b. Regenerate Last Response (Custom Model)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{jwt_token}}",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"model\": \"llama3\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/v1/sessions/{{session_id}}/regenerate",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"sessions",
+						"{{session_id}}",
+						"regenerate"
+					]
+				},
+				"description": "Regenerate the last assistant response using a specific model"
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "jwt_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "session_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "message_id",
+			"value": "",
+			"type": "string"
+		}
+	]
 }

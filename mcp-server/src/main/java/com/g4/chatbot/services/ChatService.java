@@ -157,82 +157,130 @@ public class ChatService {
     }
     
     /**
-     * Handle chat without streaming (wait for complete response)
+     * Helper class to hold chat context between transaction boundaries
      */
-    @Transactional
+    private static class ChatContext {
+        final String sessionId;
+        final boolean isNewSession;
+        final Message userMessage;
+        final List<OllamaMessage> ollamaMessages;
+        final String model;
+        
+        ChatContext(String sessionId, boolean isNewSession, Message userMessage, 
+                   List<OllamaMessage> ollamaMessages, String model) {
+            this.sessionId = sessionId;
+            this.isNewSession = isNewSession;
+            this.userMessage = userMessage;
+            this.ollamaMessages = ollamaMessages;
+            this.model = model;
+        }
+    }
+    
+    /**
+     * Handle chat without streaming (wait for complete response)
+     * Split into separate transactions to avoid holding DB connection during Ollama call
+     */
     public ChatResponse chat(Long userId, ChatRequest request) {
         log.info("Processing non-streaming chat for user: {}", userId);
         
         try {
-            // 1. Get or create session
-            String sessionId = getOrCreateSession(userId, request);
-            boolean isNewSession = request.getSessionId() == null;
-            log.info("Using session: {} (isNew: {}, requested: {})", 
-                sessionId, isNewSession, request.getSessionId());
+            // Step 1: Prepare chat context in a transaction (fast DB operations)
+            ChatContext context = prepareChatContextInTransaction(userId, request);
             
-            // 2. Get conversation history BEFORE saving new message
-            List<Message> history = messageRepository.findBySessionIdOrderByTimestampAsc(sessionId);
-            log.debug("Fetched {} messages from history for session {}", history.size(), sessionId);
+            // Step 2: Call Ollama (long-running) - NO DB transaction held
+            String assistantResponse = ollamaService.chat(context.model, context.ollamaMessages);
             
-            // Log what we fetched from DB
-            for (int i = 0; i < history.size(); i++) {
-                Message msg = history.get(i);
-                log.info("DB Message {}: role={}, length={}, id={}", 
-                    i+1, msg.getRole(), msg.getContent().length(), msg.getId());
-            }
+            // Step 3: Save result and update stats in a transaction (fast DB operations)
+            ChatResponse response = saveChatResponseInTransaction(
+                context.sessionId, context.userMessage, assistantResponse, 
+                context.model, context.isNewSession
+            );
             
-            List<OllamaMessage> ollamaMessages = new java.util.ArrayList<>(ollamaService.buildMessageHistory(history));
-            log.debug("Built {} Ollama messages from history", ollamaMessages.size());
-            
-            // 3. Add current user message to the conversation
-            ollamaMessages.add(OllamaMessage.builder()
-                    .role("user")
-                    .content(request.getMessage())
-                    .build());
-            
-            log.info("Sending {} total messages to Ollama (including current message)", ollamaMessages.size());
-            for (int i = 0; i < ollamaMessages.size(); i++) {
-                OllamaMessage msg = ollamaMessages.get(i);
-                log.info("Message {}: role={}, length={}", i+1, msg.getRole(), msg.getContent().length());
-                // Log first 200 chars of each message
-                String preview = msg.getContent().length() > 200 
-                    ? msg.getContent().substring(0, 200) + "..." 
-                    : msg.getContent();
-                log.info("  Content preview: {}", preview);
-            }
-            
-            // 4. Save user message to DB
-            Message userMessage = saveUserMessage(sessionId, request.getMessage(), request.getModel());
-            
-            // 5. Get LLM response
-            String model = request.getModel() != null ? request.getModel() : 
-                          chatSessionRepository.findById(sessionId).map(ChatSession::getModel).orElse("llama3");
-            
-            String assistantResponse = ollamaService.chat(model, ollamaMessages);
-            
-            // 6. Save assistant message
-            Message assistantMessage = saveAssistantMessage(sessionId, assistantResponse, model);
-            
-            // 7. Update session stats
-            updateSessionStats(sessionId);
-            
-            // 8. Build response
-            return ChatResponse.builder()
-                    .sessionId(sessionId)
-                    .userMessageId(userMessage.getId())
-                    .assistantMessageId(assistantMessage.getId())
-                    .userMessage(userMessage.getContent())
-                    .assistantMessage(assistantMessage.getContent())
-                    .model(model)
-                    .tokenCount(assistantMessage.getTokenCount())
-                    .timestamp(LocalDateTime.now())
-                    .isNewSession(isNewSession)
-                    .build();
+            return response;
                     
         } catch (Exception e) {
             log.error("Error processing chat", e);
             throw new RuntimeException("Failed to process chat: " + e.getMessage());
         }
+    }
+    
+    /**
+     * Prepare chat context within a transaction
+     */
+    @Transactional
+    private ChatContext prepareChatContextInTransaction(Long userId, ChatRequest request) {
+        // 1. Get or create session
+        String sessionId = getOrCreateSession(userId, request);
+        boolean isNewSession = request.getSessionId() == null;
+        log.info("Using session: {} (isNew: {}, requested: {})", 
+            sessionId, isNewSession, request.getSessionId());
+        
+        // 2. Get conversation history BEFORE saving new message
+        List<Message> history = messageRepository.findBySessionIdOrderByTimestampAsc(sessionId);
+        log.debug("Fetched {} messages from history for session {}", history.size(), sessionId);
+        
+        // Log what we fetched from DB
+        for (int i = 0; i < history.size(); i++) {
+            Message msg = history.get(i);
+            log.info("DB Message {}: role={}, length={}, id={}", 
+                i+1, msg.getRole(), msg.getContent().length(), msg.getId());
+        }
+        
+        List<OllamaMessage> ollamaMessages = new java.util.ArrayList<>(ollamaService.buildMessageHistory(history));
+        log.debug("Built {} Ollama messages from history", ollamaMessages.size());
+        
+        // 3. Add current user message to the conversation
+        ollamaMessages.add(OllamaMessage.builder()
+                .role("user")
+                .content(request.getMessage())
+                .build());
+        
+        log.info("Sending {} total messages to Ollama (including current message)", ollamaMessages.size());
+        for (int i = 0; i < ollamaMessages.size(); i++) {
+            OllamaMessage msg = ollamaMessages.get(i);
+            log.info("Message {}: role={}, length={}", i+1, msg.getRole(), msg.getContent().length());
+            // Log first 200 chars of each message
+            String preview = msg.getContent().length() > 200 
+                ? msg.getContent().substring(0, 200) + "..." 
+                : msg.getContent();
+            log.info("  Content preview: {}", preview);
+        }
+        
+        // 4. Save user message to DB
+        Message userMessage = saveUserMessage(sessionId, request.getMessage(), request.getModel());
+        
+        // 5. Determine model to use
+        String model = request.getModel() != null ? request.getModel() : 
+                      chatSessionRepository.findById(sessionId).map(ChatSession::getModel).orElse("llama3");
+        
+        return new ChatContext(sessionId, isNewSession, userMessage, ollamaMessages, model);
+    }
+    
+    /**
+     * Save chat response within a transaction
+     */
+    @Transactional
+    private ChatResponse saveChatResponseInTransaction(String sessionId, Message userMessage, 
+                                                       String assistantResponse, String model, 
+                                                       boolean isNewSession) {
+        // 6. Save assistant message
+        Message assistantMessage = saveAssistantMessage(sessionId, assistantResponse, model);
+        
+        // 7. Update session stats
+        updateSessionStats(sessionId);
+        
+        // 8. Build response
+        return ChatResponse.builder()
+                .sessionId(sessionId)
+                .userMessageId(userMessage.getId())
+                .assistantMessageId(assistantMessage.getId())
+                .userMessage(userMessage.getContent())
+                .assistantMessage(assistantMessage.getContent())
+                .model(model)
+                .tokenCount(assistantMessage.getTokenCount())
+                .timestamp(LocalDateTime.now())
+                .isNewSession(isNewSession)
+                .build();
     }
     
     /**

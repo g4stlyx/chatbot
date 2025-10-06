@@ -32,6 +32,20 @@ public class MessageService {
     private OllamaService ollamaService;
     
     /**
+     * Helper class to hold regeneration context between transaction boundaries
+     */
+    private static class RegenerationContext {
+        final List<OllamaMessage> ollamaMessages;
+        final String modelToUse;
+        
+        RegenerationContext(List<OllamaMessage> ollamaMessages, String modelToUse) {
+            this.ollamaMessages = ollamaMessages;
+            this.modelToUse = modelToUse;
+        }
+    }
+
+    
+    /**
      * Get all messages for a session
      */
     public MessageHistoryResponse getMessageHistory(String sessionId, Long userId) {
@@ -74,10 +88,28 @@ public class MessageService {
      * Update a message (edit content)
      * Only USER messages can be edited
      */
-    @Transactional
     public MessageResponse updateMessage(Long messageId, UpdateMessageRequest request, Long userId) {
         log.info("Updating message: {} for user: {}", messageId, userId);
         
+        // Step 1: Update the message in a short transaction
+        Message updated = updateMessageInTransaction(messageId, request, userId);
+        
+        // Step 2: If regenerateResponse is true, handle regeneration OUTSIDE transaction
+        if (Boolean.TRUE.equals(request.getRegenerateResponse())) {
+            log.info("Regenerating assistant response after message edit");
+            deleteSubsequentMessagesInTransaction(updated, userId);
+            // This calls Ollama (long-running) - no DB transaction held
+            regenerateFromMessage(updated, userId);
+        }
+        
+        return MessageResponse.from(updated);
+    }
+    
+    /**
+     * Internal method to update message within a transaction
+     */
+    @Transactional
+    private Message updateMessageInTransaction(Long messageId, UpdateMessageRequest request, Long userId) {
         Message message = messageRepository.findById(messageId)
                 .orElseThrow(() -> new RuntimeException("Message not found"));
         
@@ -95,15 +127,14 @@ public class MessageService {
         Message updated = messageRepository.save(message);
         
         log.info("Message {} updated successfully", messageId);
-        
-        // If regenerateResponse is true, delete the next assistant message and regenerate
-        if (Boolean.TRUE.equals(request.getRegenerateResponse())) {
-            log.info("Regenerating assistant response after message edit");
-            deleteSubsequentMessages(message, userId);
-            regenerateFromMessage(message, userId);
-        }
-        
-        return MessageResponse.from(updated);
+        return updated;
+    }
+    
+    /**
+     * Wrapper method to delete subsequent messages in transaction
+     */
+    private void deleteSubsequentMessagesInTransaction(Message fromMessage, Long userId) {
+        deleteSubsequentMessages(fromMessage, userId);
     }
     
     /**
@@ -160,10 +191,27 @@ public class MessageService {
     /**
      * Regenerate the last assistant response in a session
      */
-    @Transactional
     public MessageResponse regenerateLastResponse(String sessionId, Long userId, String model) {
         log.info("Regenerating last response for session: {}, user: {}", sessionId, userId);
         
+        // Step 1: Delete last assistant message in a transaction
+        RegenerationContext context = deleteLastAssistantMessageInTransaction(sessionId, userId, model);
+        
+        // Step 2: Call Ollama (long-running) - NO DB transaction held
+        String assistantResponse = ollamaService.chat(context.modelToUse, context.ollamaMessages);
+        
+        // Step 3: Save new message in a transaction
+        Message saved = saveRegeneratedMessageInTransaction(sessionId, context.modelToUse, assistantResponse, userId);
+        
+        log.info("Response regenerated successfully, new message ID: {}", saved.getId());
+        return MessageResponse.from(saved);
+    }
+    
+    /**
+     * Internal method to delete last assistant message and prepare context
+     */
+    @Transactional
+    private RegenerationContext deleteLastAssistantMessageInTransaction(String sessionId, Long userId, String model) {
         // Verify session belongs to user
         ChatSession session = chatSessionRepository.findBySessionIdAndUserId(sessionId, userId)
                 .orElseThrow(() -> new RuntimeException("Session not found or access denied"));
@@ -176,17 +224,11 @@ public class MessageService {
         
         // Find the last assistant message
         Message lastAssistantMessage = null;
-        Message lastUserMessage = null;
         
         for (int i = messages.size() - 1; i >= 0; i--) {
             Message msg = messages.get(i);
-            if (msg.getRole() == Message.MessageRole.ASSISTANT && lastAssistantMessage == null) {
+            if (msg.getRole() == Message.MessageRole.ASSISTANT) {
                 lastAssistantMessage = msg;
-            } else if (msg.getRole() == Message.MessageRole.USER && lastUserMessage == null) {
-                lastUserMessage = msg;
-            }
-            
-            if (lastAssistantMessage != null && lastUserMessage != null) {
                 break;
             }
         }
@@ -200,6 +242,7 @@ public class MessageService {
         session.setMessageCount(session.getMessageCount() - 1);
         session.setTokenUsage(session.getTokenUsage() - 
                 (lastAssistantMessage.getTokenCount() != null ? lastAssistantMessage.getTokenCount() : 0));
+        chatSessionRepository.save(session);
         
         // Rebuild history without the deleted message
         List<Message> historyForRegeneration = messageRepository.findBySessionIdOrderByTimestampAsc(sessionId);
@@ -213,15 +256,23 @@ public class MessageService {
         
         log.info("Regenerating with model: {}, history size: {}", modelToUse, ollamaMessages.size());
         
-        // Call Ollama to generate new response
-        String assistantResponse = ollamaService.chat(modelToUse, ollamaMessages);
+        return new RegenerationContext(ollamaMessages, modelToUse);
+    }
+    
+    /**
+     * Internal method to save regenerated message
+     */
+    @Transactional
+    private Message saveRegeneratedMessageInTransaction(String sessionId, String model, String assistantResponse, Long userId) {
+        ChatSession session = chatSessionRepository.findBySessionIdAndUserId(sessionId, userId)
+                .orElseThrow(() -> new RuntimeException("Session not found"));
         
         // Save the new assistant message
         Message newAssistantMessage = new Message();
         newAssistantMessage.setSessionId(sessionId);
         newAssistantMessage.setRole(Message.MessageRole.ASSISTANT);
         newAssistantMessage.setContent(assistantResponse);
-        newAssistantMessage.setModel(modelToUse);
+        newAssistantMessage.setModel(model);
         newAssistantMessage.setTokenCount(assistantResponse.length() / 4); // Rough estimate
         newAssistantMessage.setTimestamp(LocalDateTime.now());
         
@@ -233,16 +284,33 @@ public class MessageService {
         session.setUpdatedAt(LocalDateTime.now());
         chatSessionRepository.save(session);
         
-        log.info("Response regenerated successfully, new message ID: {}", saved.getId());
-        
-        return MessageResponse.from(saved);
+        return saved;
     }
     
     /**
      * Regenerate from a specific message (used after editing)
+     * Split into separate transactions to avoid holding DB connection during Ollama call
+     */
+    private void regenerateFromMessage(Message userMessage, Long userId) {
+        String sessionId = userMessage.getSessionId();
+        
+        // Step 1: Prepare context in a transaction
+        RegenerationContext context = prepareRegenerationContextInTransaction(userMessage, userId);
+        
+        // Step 2: Call Ollama (long-running) - NO DB transaction held
+        String assistantResponse = ollamaService.chat(context.modelToUse, context.ollamaMessages);
+        
+        // Step 3: Save result in a transaction
+        saveRegeneratedMessageInTransaction(sessionId, context.modelToUse, assistantResponse, userId);
+        
+        log.info("Generated new response after message edit");
+    }
+    
+    /**
+     * Prepare regeneration context within a transaction
      */
     @Transactional
-    private void regenerateFromMessage(Message userMessage, Long userId) {
+    private RegenerationContext prepareRegenerationContextInTransaction(Message userMessage, Long userId) {
         String sessionId = userMessage.getSessionId();
         
         // Get all messages up to this point
@@ -265,27 +333,7 @@ public class MessageService {
         
         String modelToUse = session.getModel() != null ? session.getModel() : "llama3";
         
-        // Generate new response
-        String assistantResponse = ollamaService.chat(modelToUse, ollamaMessages);
-        
-        // Save new assistant message
-        Message newAssistantMessage = new Message();
-        newAssistantMessage.setSessionId(sessionId);
-        newAssistantMessage.setRole(Message.MessageRole.ASSISTANT);
-        newAssistantMessage.setContent(assistantResponse);
-        newAssistantMessage.setModel(modelToUse);
-        newAssistantMessage.setTokenCount(assistantResponse.length() / 4);
-        newAssistantMessage.setTimestamp(LocalDateTime.now());
-        
-        messageRepository.save(newAssistantMessage);
-        
-        // Update session stats
-        session.setMessageCount(session.getMessageCount() + 1);
-        session.setTokenUsage(session.getTokenUsage() + newAssistantMessage.getTokenCount());
-        session.setUpdatedAt(LocalDateTime.now());
-        chatSessionRepository.save(session);
-        
-        log.info("Generated new response after message edit");
+        return new RegenerationContext(ollamaMessages, modelToUse);
     }
     
     /**

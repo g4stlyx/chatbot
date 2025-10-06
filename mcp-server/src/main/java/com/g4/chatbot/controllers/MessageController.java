@@ -29,7 +29,7 @@ public class MessageController {
             @PathVariable String sessionId,
             Authentication authentication) {
         
-        Long userId = Long.parseLong(authentication.getName());
+        Long userId = (Long) authentication.getDetails();
         log.info("User {} requesting message history for session: {}", userId, sessionId);
         
         MessageHistoryResponse response = messageService.getMessageHistory(sessionId, userId);
@@ -45,7 +45,7 @@ public class MessageController {
             @PathVariable Long messageId,
             Authentication authentication) {
         
-        Long userId = Long.parseLong(authentication.getName());
+        Long userId = (Long) authentication.getDetails();
         log.info("User {} requesting message: {}", userId, messageId);
         
         MessageResponse response = messageService.getMessage(messageId, userId);
@@ -63,7 +63,7 @@ public class MessageController {
             @Valid @RequestBody UpdateMessageRequest request,
             Authentication authentication) {
         
-        Long userId = Long.parseLong(authentication.getName());
+        Long userId = (Long) authentication.getDetails();
         log.info("User {} updating message: {}, regenerate: {}", 
                 userId, messageId, request.getRegenerateResponse());
         
@@ -81,7 +81,7 @@ public class MessageController {
             @PathVariable Long messageId,
             Authentication authentication) {
         
-        Long userId = Long.parseLong(authentication.getName());
+        Long userId = (Long) authentication.getDetails();
         log.info("User {} deleting message: {}", userId, messageId);
         
         messageService.deleteMessage(messageId, userId);
@@ -98,7 +98,7 @@ public class MessageController {
             @RequestBody(required = false) RegenerateRequest request,
             Authentication authentication) {
         
-        Long userId = Long.parseLong(authentication.getName());
+        Long userId = (Long) authentication.getDetails();
         String model = request != null ? request.getModel() : null;
         
         log.info("User {} regenerating last response for session: {}, model: {}", 
