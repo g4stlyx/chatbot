@@ -41,4 +41,8 @@ public interface ChatSessionRepository extends JpaRepository<ChatSession, String
     
     @Query("SELECT cs FROM ChatSession cs WHERE cs.status = :status ORDER BY cs.createdAt DESC")
     Page<ChatSession> findByStatusOrderByCreatedAtDesc(@Param("status") ChatSession.SessionStatus status, Pageable pageable);
+
+    // Find session by sessionId and userId for authorization
+    @Query("SELECT cs FROM ChatSession cs WHERE cs.sessionId = :sessionId AND cs.userId = :userId")
+    java.util.Optional<ChatSession> findBySessionIdAndUserId(@Param("sessionId") String sessionId, @Param("userId") Long userId);
 }
