@@ -1,6 +1,5 @@
 package com.g4.chatbot.config;
 
-import jakarta.servlet.DispatcherType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -10,23 +9,24 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 
-import com.g4.chatbot.security.JwtAuthFilter;
 import com.g4.chatbot.security.JwtAuthEntryPoint;
+import com.g4.chatbot.security.JwtAuthFilter;
+
+import jakarta.servlet.DispatcherType;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
-    
+
     @Autowired
     private JwtAuthFilter jwtAuthFilter;
-    
+
     @Autowired
     private JwtAuthEntryPoint jwtAuthEntryPoint;
 
@@ -45,50 +45,49 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthEntryPoint))
-                
+
                 // Security Headers
                 .headers(headers -> headers
-                    .frameOptions(frameOptions -> frameOptions.deny())
-                    .contentTypeOptions(contentTypeOptions -> {})
-                    .httpStrictTransportSecurity(hsts -> hsts
-                        .maxAgeInSeconds(31536000)
-                        .includeSubDomains(true)
-                        .preload(true)
-                    )
-                    .referrerPolicy(referrerPolicy -> 
-                        referrerPolicy.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)
-                    )
-                )
-                
+                        .frameOptions(frameOptions -> frameOptions.deny())
+                        .contentTypeOptions(contentTypeOptions -> {
+                        })
+                        .httpStrictTransportSecurity(hsts -> hsts
+                                .maxAgeInSeconds(31536000)
+                                .includeSubDomains(true)
+                                .preload(true))
+                        .referrerPolicy(referrerPolicy -> referrerPolicy
+                                .policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)))
+
                 // Authorization rules based on project plan
                 .authorizeHttpRequests(auth -> auth
                         // Allow ASYNC dispatcher for SSE streaming (no re-authentication)
                         .dispatcherTypeMatchers(DispatcherType.ASYNC).permitAll()
-                        
-                        //TODO: public endpoints, check them well
+
+                        // TODO: public endpoints, check them well
+                        .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers("/api/v1/health/**").permitAll()
-                        
+
                         // Actuator endpoints (should be secured in production)
                         .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers("/actuator/**").hasRole("ADMIN")
-                        
+
                         // API Documentation
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                        
+
                         // User endpoints
                         .requestMatchers(HttpMethod.GET, "/api/v1/users/profile").hasAnyRole("USER", "ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/v1/users/profile").hasAnyRole("USER", "ADMIN")
-                        
+
                         // Chat endpoints
                         .requestMatchers("/api/v1/chat/**").hasAnyRole("USER", "ADMIN")
-                        
+
                         // Admin endpoints
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
-                        
+
                         // All other requests need authentication
                         .anyRequest().authenticated())
-                
+
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
