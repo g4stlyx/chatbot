@@ -1,6 +1,8 @@
 package com.g4.chatbot.repos;
 
 import com.g4.chatbot.models.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -33,4 +35,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     
     @Query("SELECT COUNT(u) FROM User u WHERE u.lastLoginAt >= :date")
     long countActiveUsersSince(@Param("date") LocalDateTime date);
+    
+    Page<User> findByUsernameContainingIgnoreCaseOrEmailContainingIgnoreCase(
+        String username, String email, Pageable pageable);
 }

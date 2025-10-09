@@ -1,0 +1,443 @@
+package com.g4.chatbot.services;
+
+import com.g4.chatbot.dto.admin.*;
+import com.g4.chatbot.exception.BadRequestException;
+import com.g4.chatbot.exception.ResourceNotFoundException;
+import com.g4.chatbot.exception.UnauthorizedException;
+import com.g4.chatbot.models.Admin;
+import com.g4.chatbot.repos.AdminRepository;
+import com.g4.chatbot.repos.UserRepository;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@Slf4j
+public class AdminManagementService {
+    
+    @Autowired
+    private AdminRepository adminRepository;
+    
+    @Autowired
+    private UserRepository userRepository;
+    
+    @Autowired
+    private PasswordService passwordService;
+    
+    /**
+     * Check if requesting admin has permission to manage target admin
+     * Staircase Authorization:
+     * - Level 0 (Super Admin) can manage Level 1 and Level 2
+     * - Level 1 (Admin) can manage Level 2 only
+     * - Level 2 (Moderator) cannot manage other admins
+     */
+    private void validateAdminPermission(Admin requestingAdmin, Integer targetLevel, String action) {
+        int requestingLevel = requestingAdmin.getLevel();
+        
+        log.debug("Permission check - Requesting admin level: {}, Target level: {}, Action: {}", 
+            requestingLevel, targetLevel, action);
+        
+        // Super admin (level 0) can manage anyone
+        if (requestingLevel == 0) {
+            return;
+        }
+        
+        // Level 1 can only manage level 2
+        if (requestingLevel == 1 && targetLevel == 2) {
+            return;
+        }
+        
+        // Otherwise, permission denied
+        throw new UnauthorizedException(
+            String.format("Admin level %d cannot %s admin level %d. Insufficient permissions.", 
+                requestingLevel, action, targetLevel));
+    }
+    
+    /**
+     * Validate that requesting admin can manage target admin
+     */
+    private void validateAdminPermission(Admin requestingAdmin, Admin targetAdmin, String action) {
+        int requestingLevel = requestingAdmin.getLevel();
+        int targetLevel = targetAdmin.getLevel();
+        
+        log.debug("Permission check - Requesting admin level: {}, Target level: {}, Action: {}", 
+            requestingLevel, targetLevel, action);
+        
+        // Cannot manage yourself for certain actions
+        if (requestingAdmin.getId().equals(targetAdmin.getId()) && 
+            (action.equals("delete") || action.equals("deactivate"))) {
+            throw new BadRequestException("Cannot " + action + " your own account");
+        }
+        
+        // Super admin (level 0) can manage anyone except themselves for delete/deactivate
+        if (requestingLevel == 0) {
+            if (targetLevel == 0 && !requestingAdmin.getId().equals(targetAdmin.getId())) {
+                // Super admins can manage other super admins (but not delete/deactivate)
+                if (action.equals("delete") || action.equals("deactivate")) {
+                    throw new BadRequestException("Cannot " + action + " another super admin account");
+                }
+            }
+            return;
+        }
+        
+        // Level 1 can only manage level 2
+        if (requestingLevel == 1 && targetLevel == 2) {
+            return;
+        }
+        
+        // Otherwise, permission denied
+        throw new UnauthorizedException(
+            String.format("Admin level %d cannot %s admin level %d. Insufficient permissions.", 
+                requestingLevel, action, targetLevel));
+    }
+    
+    /**
+     * Get all admins with pagination (only returns admins that requesting admin can see)
+     */
+    public AdminListResponse getAllAdmins(Long requestingAdminId, int page, int size, 
+                                          String sortBy, String sortDirection) {
+        log.info("Admin {} fetching admins - page: {}, size: {}, sortBy: {}, direction: {}", 
+            requestingAdminId, page, size, sortBy, sortDirection);
+        
+        Admin requestingAdmin = adminRepository.findById(requestingAdminId)
+            .orElseThrow(() -> new ResourceNotFoundException("Admin not found with ID: " + requestingAdminId));
+        
+        Sort.Direction direction = sortDirection.equalsIgnoreCase("desc") ? 
+            Sort.Direction.DESC : Sort.Direction.ASC;
+        
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        Page<Admin> adminPage;
+        
+        // Super admin sees all admins
+        if (requestingAdmin.getLevel() == 0) {
+            adminPage = adminRepository.findAll(pageable);
+        } 
+        // Level 1 sees level 1 and 2
+        else if (requestingAdmin.getLevel() == 1) {
+            adminPage = adminRepository.findByLevelGreaterThanEqual(1, pageable);
+        }
+        // Level 2 sees only themselves
+        else {
+            adminPage = adminRepository.findByLevel(2, pageable);
+        }
+        
+        List<AdminManagementDTO> admins = adminPage.getContent().stream()
+            .map(this::mapToDTO)
+            .collect(Collectors.toList());
+        
+        return AdminListResponse.builder()
+            .admins(admins)
+            .currentPage(adminPage.getNumber())
+            .totalPages(adminPage.getTotalPages())
+            .totalItems(adminPage.getTotalElements())
+            .pageSize(adminPage.getSize())
+            .build();
+    }
+    
+    /**
+     * Get admin by ID
+     */
+    public AdminManagementDTO getAdminById(Long requestingAdminId, Long targetAdminId) {
+        log.info("Admin {} fetching admin {}", requestingAdminId, targetAdminId);
+        
+        Admin requestingAdmin = adminRepository.findById(requestingAdminId)
+            .orElseThrow(() -> new ResourceNotFoundException("Requesting admin not found"));
+        
+        Admin targetAdmin = adminRepository.findById(targetAdminId)
+            .orElseThrow(() -> new ResourceNotFoundException("Admin not found with ID: " + targetAdminId));
+        
+        // Check permission to view
+        if (requestingAdmin.getLevel() > targetAdmin.getLevel() && 
+            !requestingAdmin.getId().equals(targetAdmin.getId())) {
+            throw new UnauthorizedException("You don't have permission to view this admin");
+        }
+        
+        return mapToDTO(targetAdmin);
+    }
+    
+    /**
+     * Create a new admin (with level validation)
+     */
+    @Transactional
+    public AdminManagementDTO createAdmin(Long requestingAdminId, CreateAdminRequest request) {
+        log.info("Admin {} creating new admin with level {}", requestingAdminId, request.getLevel());
+        
+        Admin requestingAdmin = adminRepository.findById(requestingAdminId)
+            .orElseThrow(() -> new ResourceNotFoundException("Requesting admin not found"));
+        
+        // Validate permission to create admin at target level
+        validateAdminPermission(requestingAdmin, request.getLevel(), "create");
+        
+        // Cannot create super admin (level 0) via API
+        if (request.getLevel() == 0) {
+            throw new BadRequestException("Cannot create super admin via API. Super admins must be created manually.");
+        }
+        
+        // Check if username already exists
+        if (userRepository.existsByUsername(request.getUsername()) || 
+            adminRepository.existsByUsername(request.getUsername())) {
+            throw new BadRequestException("Username already exists");
+        }
+        
+        // Check if email already exists
+        if (userRepository.existsByEmail(request.getEmail()) || 
+            adminRepository.existsByEmail(request.getEmail())) {
+            throw new BadRequestException("Email already exists");
+        }
+        
+        // Create new admin
+        String salt = passwordService.generateSalt();
+        String hashedPassword = passwordService.hashPassword(request.getPassword(), salt);
+        
+        Admin admin = new Admin();
+        admin.setUsername(request.getUsername());
+        admin.setEmail(request.getEmail());
+        admin.setPasswordHash(hashedPassword);
+        admin.setSalt(salt);
+        admin.setFirstName(request.getFirstName());
+        admin.setLastName(request.getLastName());
+        admin.setProfilePicture(request.getProfilePicture());
+        admin.setLevel(request.getLevel());
+        admin.setPermissions(request.getPermissions());
+        admin.setIsActive(request.getIsActive() != null ? request.getIsActive() : true);
+        admin.setCreatedBy(requestingAdminId);
+        
+        admin = adminRepository.save(admin);
+        log.info("Admin created successfully with ID: {}", admin.getId());
+        
+        return mapToDTO(admin);
+    }
+    
+    /**
+     * Update admin by ID
+     */
+    @Transactional
+    public AdminManagementDTO updateAdmin(Long requestingAdminId, Long targetAdminId, 
+                                          UpdateAdminRequest request) {
+        log.info("Admin {} updating admin {}", requestingAdminId, targetAdminId);
+        
+        Admin requestingAdmin = adminRepository.findById(requestingAdminId)
+            .orElseThrow(() -> new ResourceNotFoundException("Requesting admin not found"));
+        
+        Admin targetAdmin = adminRepository.findById(targetAdminId)
+            .orElseThrow(() -> new ResourceNotFoundException("Admin not found with ID: " + targetAdminId));
+        
+        // Validate permission to update
+        validateAdminPermission(requestingAdmin, targetAdmin, "update");
+        
+        // Check if email is being changed and if it's already taken
+        if (request.getEmail() != null && !request.getEmail().equals(targetAdmin.getEmail())) {
+            if (userRepository.existsByEmail(request.getEmail()) || 
+                adminRepository.existsByEmail(request.getEmail())) {
+                throw new BadRequestException("Email is already in use");
+            }
+            targetAdmin.setEmail(request.getEmail());
+        }
+        
+        // Update fields if provided
+        if (request.getFirstName() != null) {
+            targetAdmin.setFirstName(request.getFirstName());
+        }
+        
+        if (request.getLastName() != null) {
+            targetAdmin.setLastName(request.getLastName());
+        }
+        
+        if (request.getProfilePicture() != null) {
+            targetAdmin.setProfilePicture(request.getProfilePicture());
+        }
+        
+        // Only update level if requesting admin has permission
+        if (request.getLevel() != null && !request.getLevel().equals(targetAdmin.getLevel())) {
+            // Cannot change to/from level 0
+            if (request.getLevel() == 0 || targetAdmin.getLevel() == 0) {
+                throw new BadRequestException("Cannot change super admin level via API");
+            }
+            
+            // Validate permission for new level
+            validateAdminPermission(requestingAdmin, request.getLevel(), "assign level to");
+            targetAdmin.setLevel(request.getLevel());
+        }
+        
+        if (request.getPermissions() != null) {
+            targetAdmin.setPermissions(request.getPermissions());
+        }
+        
+        if (request.getIsActive() != null) {
+            targetAdmin.setIsActive(request.getIsActive());
+        }
+        
+        targetAdmin = adminRepository.save(targetAdmin);
+        log.info("Admin updated successfully: {}", targetAdminId);
+        
+        return mapToDTO(targetAdmin);
+    }
+    
+    /**
+     * Delete admin by ID (soft delete - deactivate)
+     */
+    @Transactional
+    public void deleteAdmin(Long requestingAdminId, Long targetAdminId) {
+        log.info("Admin {} deleting (deactivating) admin {}", requestingAdminId, targetAdminId);
+        
+        Admin requestingAdmin = adminRepository.findById(requestingAdminId)
+            .orElseThrow(() -> new ResourceNotFoundException("Requesting admin not found"));
+        
+        Admin targetAdmin = adminRepository.findById(targetAdminId)
+            .orElseThrow(() -> new ResourceNotFoundException("Admin not found with ID: " + targetAdminId));
+        
+        // Validate permission to delete
+        validateAdminPermission(requestingAdmin, targetAdmin, "delete");
+        
+        // Cannot delete super admin
+        if (targetAdmin.getLevel() == 0) {
+            throw new BadRequestException("Cannot delete super admin account");
+        }
+        
+        targetAdmin.setIsActive(false);
+        adminRepository.save(targetAdmin);
+        
+        log.info("Admin deactivated successfully: {}", targetAdminId);
+    }
+    
+    /**
+     * Activate admin
+     */
+    @Transactional
+    public AdminManagementDTO activateAdmin(Long requestingAdminId, Long targetAdminId) {
+        log.info("Admin {} activating admin {}", requestingAdminId, targetAdminId);
+        
+        Admin requestingAdmin = adminRepository.findById(requestingAdminId)
+            .orElseThrow(() -> new ResourceNotFoundException("Requesting admin not found"));
+        
+        Admin targetAdmin = adminRepository.findById(targetAdminId)
+            .orElseThrow(() -> new ResourceNotFoundException("Admin not found with ID: " + targetAdminId));
+        
+        // Validate permission
+        validateAdminPermission(requestingAdmin, targetAdmin, "activate");
+        
+        targetAdmin.setIsActive(true);
+        targetAdmin.setLoginAttempts(0);
+        targetAdmin.setLockedUntil(null);
+        
+        targetAdmin = adminRepository.save(targetAdmin);
+        log.info("Admin activated successfully: {}", targetAdminId);
+        
+        return mapToDTO(targetAdmin);
+    }
+    
+    /**
+     * Deactivate admin
+     */
+    @Transactional
+    public AdminManagementDTO deactivateAdmin(Long requestingAdminId, Long targetAdminId) {
+        log.info("Admin {} deactivating admin {}", requestingAdminId, targetAdminId);
+        
+        Admin requestingAdmin = adminRepository.findById(requestingAdminId)
+            .orElseThrow(() -> new ResourceNotFoundException("Requesting admin not found"));
+        
+        Admin targetAdmin = adminRepository.findById(targetAdminId)
+            .orElseThrow(() -> new ResourceNotFoundException("Admin not found with ID: " + targetAdminId));
+        
+        // Validate permission
+        validateAdminPermission(requestingAdmin, targetAdmin, "deactivate");
+        
+        // Cannot deactivate super admin
+        if (targetAdmin.getLevel() == 0) {
+            throw new BadRequestException("Cannot deactivate super admin account");
+        }
+        
+        targetAdmin.setIsActive(false);
+        targetAdmin = adminRepository.save(targetAdmin);
+        
+        log.info("Admin deactivated successfully: {}", targetAdminId);
+        
+        return mapToDTO(targetAdmin);
+    }
+    
+    /**
+     * Reset admin password
+     */
+    @Transactional
+    public void resetAdminPassword(Long requestingAdminId, Long targetAdminId, 
+                                   ResetUserPasswordRequest request) {
+        log.info("Admin {} resetting password for admin {}", requestingAdminId, targetAdminId);
+        
+        Admin requestingAdmin = adminRepository.findById(requestingAdminId)
+            .orElseThrow(() -> new ResourceNotFoundException("Requesting admin not found"));
+        
+        Admin targetAdmin = adminRepository.findById(targetAdminId)
+            .orElseThrow(() -> new ResourceNotFoundException("Admin not found with ID: " + targetAdminId));
+        
+        // Validate permission
+        validateAdminPermission(requestingAdmin, targetAdmin, "reset password for");
+        
+        // Generate new salt and hash new password
+        String newSalt = passwordService.generateSalt();
+        String newHashedPassword = passwordService.hashPassword(request.getNewPassword(), newSalt);
+        
+        targetAdmin.setSalt(newSalt);
+        targetAdmin.setPasswordHash(newHashedPassword);
+        targetAdmin.setLoginAttempts(0);
+        targetAdmin.setLockedUntil(null);
+        
+        adminRepository.save(targetAdmin);
+        log.info("Password reset successfully for admin: {}", targetAdminId);
+    }
+    
+    /**
+     * Unlock admin account
+     */
+    @Transactional
+    public AdminManagementDTO unlockAdmin(Long requestingAdminId, Long targetAdminId) {
+        log.info("Admin {} unlocking admin account {}", requestingAdminId, targetAdminId);
+        
+        Admin requestingAdmin = adminRepository.findById(requestingAdminId)
+            .orElseThrow(() -> new ResourceNotFoundException("Requesting admin not found"));
+        
+        Admin targetAdmin = adminRepository.findById(targetAdminId)
+            .orElseThrow(() -> new ResourceNotFoundException("Admin not found with ID: " + targetAdminId));
+        
+        // Validate permission
+        validateAdminPermission(requestingAdmin, targetAdmin, "unlock");
+        
+        targetAdmin.setLoginAttempts(0);
+        targetAdmin.setLockedUntil(null);
+        
+        targetAdmin = adminRepository.save(targetAdmin);
+        log.info("Admin account unlocked successfully: {}", targetAdminId);
+        
+        return mapToDTO(targetAdmin);
+    }
+    
+    /**
+     * Map Admin entity to AdminManagementDTO
+     */
+    private AdminManagementDTO mapToDTO(Admin admin) {
+        return AdminManagementDTO.builder()
+            .id(admin.getId())
+            .username(admin.getUsername())
+            .email(admin.getEmail())
+            .firstName(admin.getFirstName())
+            .lastName(admin.getLastName())
+            .profilePicture(admin.getProfilePicture())
+            .level(admin.getLevel())
+            .permissions(admin.getPermissions())
+            .isActive(admin.getIsActive())
+            .loginAttempts(admin.getLoginAttempts())
+            .lockedUntil(admin.getLockedUntil())
+            .createdBy(admin.getCreatedBy())
+            .createdAt(admin.getCreatedAt())
+            .updatedAt(admin.getUpdatedAt())
+            .lastLoginAt(admin.getLastLoginAt())
+            .build();
+    }
+}

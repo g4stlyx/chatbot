@@ -24,7 +24,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/api/v1/auth")
 @Slf4j
 public class AuthController {
 

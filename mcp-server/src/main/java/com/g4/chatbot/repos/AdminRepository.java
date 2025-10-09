@@ -1,6 +1,8 @@
 package com.g4.chatbot.repos;
 
 import com.g4.chatbot.models.Admin;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -33,4 +35,8 @@ public interface AdminRepository extends JpaRepository<Admin, Long> {
     
     @Query("SELECT COUNT(a) FROM Admin a WHERE a.level = 0") // Super Admin count
     long countSuperAdmins();
+    
+    Page<Admin> findByLevelGreaterThanEqual(Integer level, Pageable pageable);
+    
+    Page<Admin> findByLevel(Integer level, Pageable pageable);
 }

@@ -64,7 +64,6 @@ public class SecurityConfig {
                         .dispatcherTypeMatchers(DispatcherType.ASYNC).permitAll()
 
                         // TODO: public endpoints, check them well
-                        .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers("/api/v1/health/**").permitAll()
 

@@ -40,10 +40,10 @@ api.interceptors.response.use(
 
 // Auth API
 export const authAPI = {
-  register: (userData) => api.post("/api/auth/register", userData),
-  login: (credentials) => api.post("/api/auth/login", credentials),
-  logout: () => api.post("/api/auth/logout"),
-  getCurrentUser: () => api.get("/api/auth/me"),
+  register: (userData) => api.post("/api/v1/auth/register", userData),
+  login: (credentials) => api.post("/api/v1/auth/login", credentials),
+  logout: () => api.post("/api/v1/auth/logout"),
+  getCurrentUser: () => api.get("/api/v1/auth/me"),
 };
 
 // Chat API
