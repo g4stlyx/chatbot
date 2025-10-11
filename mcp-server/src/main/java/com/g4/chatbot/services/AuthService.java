@@ -206,6 +206,14 @@ public class AuthService {
                 .build();
         }
         
+        // Check if email is verified
+        if (!user.getEmailVerified()) {
+            return AuthResponse.builder()
+                .success(false)
+                .message("Email must be verified before login. Please check your email for verification link.")
+                .build();
+        }
+        
         // Check if account is locked
         if (user.getLockedUntil() != null && user.getLockedUntil().isAfter(LocalDateTime.now())) {
             return AuthResponse.builder()
