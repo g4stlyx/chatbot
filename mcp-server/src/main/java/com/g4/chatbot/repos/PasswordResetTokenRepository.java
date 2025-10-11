@@ -1,6 +1,8 @@
 package com.g4.chatbot.repos;
 
 import com.g4.chatbot.models.PasswordResetToken;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -16,4 +18,9 @@ public interface PasswordResetTokenRepository extends JpaRepository<PasswordRese
     void deleteByUserIdAndUserType(Long userId, String userType);
     Optional<PasswordResetToken> findFirstByRequestingIpOrderByCreatedDateDesc(String ipAddress);
     Optional<PasswordResetToken> findFirstByOrderByCreatedDateDesc();
+    
+    // Admin panel queries
+    Page<PasswordResetToken> findAllByOrderByCreatedDateDesc(Pageable pageable);
+    Page<PasswordResetToken> findByUserTypeOrderByCreatedDateDesc(String userType, Pageable pageable);
+    Page<PasswordResetToken> findByExpiryDateBeforeOrderByCreatedDateDesc(LocalDateTime dateTime, Pageable pageable);
 }

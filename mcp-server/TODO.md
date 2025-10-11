@@ -13,15 +13,17 @@
 ### admin panel stuff
 * ✅ CRUD users
 * ✅ CRUD admins (staircase style)
-* CRUD chatSession info, with their messages
-* CRUD messages
-* read adminActivityLog (only level 0 admins)
-* read passwordResetTokens, verificationTokens (only level 0 admins)
+* ✅ CRUD chatSession info, with their messages
+* ✅ CRUD messages
+* ✅ read adminActivityLog (only level 0 admins)
+* ✅ read passwordResetTokens, verificationTokens (only level 0 admins)
 
 ---
 ### Extras
-* email uniqueness on register
-* is locked, or activeness checked on login? if so, do it (activeness is checked)
+* ✅ email uniqueness on register
+* ✅ isLocked, isVerified and isActive should be checked on login.
+* admin aktivitesi loglanmıyor olabilir bak (middleware gibi bir şeyle yap, fonksiyonu admin işlemlerine ekle -event streaming? apache kafka?)
+* verification ve password reset tokenleri kaydediliyor mu test et (muhtemelen ediliyor ama db boş o yüzden bakmak lazım)
 * filtering everywhere (e.g by level for admin management, by emailVerified/active/lockedUntil for user management)
 * title ile chat arama (hem BE hem FE'e)
 * 🔄 chat sharing? (is_public) - Basic support added, needs testing

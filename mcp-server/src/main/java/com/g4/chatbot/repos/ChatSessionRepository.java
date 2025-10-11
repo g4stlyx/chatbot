@@ -45,4 +45,21 @@ public interface ChatSessionRepository extends JpaRepository<ChatSession, String
     // Find session by sessionId and userId for authorization
     @Query("SELECT cs FROM ChatSession cs WHERE cs.sessionId = :sessionId AND cs.userId = :userId")
     java.util.Optional<ChatSession> findBySessionIdAndUserId(@Param("sessionId") String sessionId, @Param("userId") Long userId);
+    
+    // Admin management queries with filtering
+    Page<ChatSession> findByUserId(Long userId, Pageable pageable);
+    
+    Page<ChatSession> findByStatus(ChatSession.SessionStatus status, Pageable pageable);
+    
+    Page<ChatSession> findByIsFlagged(Boolean isFlagged, Pageable pageable);
+    
+    Page<ChatSession> findByIsPublic(Boolean isPublic, Pageable pageable);
+    
+    Page<ChatSession> findByUserIdAndStatus(Long userId, ChatSession.SessionStatus status, Pageable pageable);
+    
+    Page<ChatSession> findByUserIdAndIsFlagged(Long userId, Boolean isFlagged, Pageable pageable);
+    
+    Page<ChatSession> findByStatusAndIsFlagged(ChatSession.SessionStatus status, Boolean isFlagged, Pageable pageable);
+    
+    Page<ChatSession> findByUserIdAndStatusAndIsFlagged(Long userId, ChatSession.SessionStatus status, Boolean isFlagged, Pageable pageable);
 }

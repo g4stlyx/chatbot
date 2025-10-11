@@ -463,6 +463,511 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "Session Management",
+      "item": [
+        {
+          "name": "Get All Sessions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/sessions?page=0&size=10&sortBy=createdAt&sortDirection=desc",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "sessions"],
+              "query": [
+                {"key": "page", "value": "0"},
+                {"key": "size", "value": "10"},
+                {"key": "sortBy", "value": "createdAt"},
+                {"key": "sortDirection", "value": "desc"},
+                {"key": "userId", "value": "", "disabled": true},
+                {"key": "status", "value": "", "disabled": true},
+                {"key": "isFlagged", "value": "", "disabled": true},
+                {"key": "isPublic", "value": "", "disabled": true}
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Session by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/sessions/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "sessions", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Session",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/sessions/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "sessions", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Archive Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/sessions/1/archive",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "sessions", "1", "archive"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Flag Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"flagType\": \"INAPPROPRIATE_CONTENT\",\n  \"reason\": \"Contains inappropriate content\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/sessions/1/flag",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "sessions", "1", "flag"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Unflag Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/sessions/1/unflag",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "sessions", "1", "unflag"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Message Management",
+      "item": [
+        {
+          "name": "Get All Messages",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/messages?page=0&size=10&sortBy=timestamp&sortDirection=desc",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "messages"],
+              "query": [
+                {"key": "page", "value": "0"},
+                {"key": "size", "value": "10"},
+                {"key": "sortBy", "value": "timestamp"},
+                {"key": "sortDirection", "value": "desc"},
+                {"key": "sessionId", "value": "", "disabled": true},
+                {"key": "userId", "value": "", "disabled": true},
+                {"key": "role", "value": "", "disabled": true},
+                {"key": "isFlagged", "value": "", "disabled": true}
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Message by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/messages/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "messages", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Messages by Session",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/messages/session/1?page=0&size=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "messages", "session", "1"],
+              "query": [
+                {"key": "page", "value": "0"},
+                {"key": "size", "value": "10"}
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Message",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/messages/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "messages", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Flag Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"flagType\": \"INAPPROPRIATE\",\n  \"reason\": \"Inappropriate content\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/messages/1/flag",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "messages", "1", "flag"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Unflag Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/messages/1/unflag",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "messages", "1", "unflag"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Activity Logs (Level 0 Only)",
+      "item": [
+        {
+          "name": "Get All Activity Logs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/activity-logs?page=0&size=20&sortBy=createdAt&sortDirection=desc",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "activity-logs"],
+              "query": [
+                {"key": "page", "value": "0"},
+                {"key": "size", "value": "20"},
+                {"key": "sortBy", "value": "createdAt"},
+                {"key": "sortDirection", "value": "desc"},
+                {"key": "adminId", "value": "", "disabled": true},
+                {"key": "action", "value": "", "disabled": true},
+                {"key": "resourceType", "value": "", "disabled": true}
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Activity Log by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/activity-logs/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "activity-logs", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Activity Log",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/activity-logs/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "activity-logs", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Activity Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/activity-logs/stats/{{admin_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "activity-logs", "stats", "{{admin_id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Token Management (Level 0 Only)",
+      "item": [
+        {
+          "name": "Get All Password Reset Tokens",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/tokens/password-reset?page=0&size=20&sortBy=createdDate&sortDirection=desc",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "tokens", "password-reset"],
+              "query": [
+                {"key": "page", "value": "0"},
+                {"key": "size", "value": "20"},
+                {"key": "sortBy", "value": "createdDate"},
+                {"key": "sortDirection", "value": "desc"},
+                {"key": "userType", "value": "", "disabled": true},
+                {"key": "includeExpired", "value": "true"}
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Password Reset Token by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/tokens/password-reset/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "tokens", "password-reset", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Password Reset Token",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/tokens/password-reset/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "tokens", "password-reset", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Verification Tokens",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/tokens/verification?page=0&size=20&sortBy=createdDate&sortDirection=desc",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "tokens", "verification"],
+              "query": [
+                {"key": "page", "value": "0"},
+                {"key": "size", "value": "20"},
+                {"key": "sortBy", "value": "createdDate"},
+                {"key": "sortDirection", "value": "desc"},
+                {"key": "userType", "value": "", "disabled": true},
+                {"key": "includeExpired", "value": "true"}
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Verification Token by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/tokens/verification/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "tokens", "verification", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Verification Token",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/tokens/verification/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "tokens", "verification", "1"]
+            }
+          },
+          "response": []
+        }
+      ]
     }
   ]
 }

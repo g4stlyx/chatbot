@@ -37,6 +37,18 @@ public class Message {
     @Column(name = "metadata", columnDefinition = "JSON")
     private String metadata;
     
+    @Column(name = "is_flagged", nullable = false)
+    private Boolean isFlagged = false;
+    
+    @Column(name = "flag_reason", columnDefinition = "TEXT")
+    private String flagReason;
+    
+    @Column(name = "flagged_by")
+    private Long flaggedBy;
+    
+    @Column(name = "flagged_at")
+    private LocalDateTime flaggedAt;
+    
     @Column(name = "timestamp", nullable = false, updatable = false)
     private LocalDateTime timestamp;
     

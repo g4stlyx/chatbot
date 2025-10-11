@@ -45,4 +45,20 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     
     @Query("SELECT m FROM Message m WHERE m.content LIKE CONCAT('%', :searchTerm, '%') ORDER BY m.timestamp DESC")
     Page<Message> findByContentContainingIgnoreCaseOrderByTimestampDesc(@Param("searchTerm") String searchTerm, Pageable pageable);
+    
+    // Admin management queries
+    void deleteBySessionId(String sessionId);
+    
+    Page<Message> findBySessionId(String sessionId, Pageable pageable);
+    
+    Page<Message> findByRole(Message.MessageRole role, Pageable pageable);
+    
+    Page<Message> findByIsFlagged(Boolean isFlagged, Pageable pageable);
+    
+    Page<Message> findBySessionIdAndIsFlagged(String sessionId, Boolean isFlagged, Pageable pageable);
+    
+    Page<Message> findByRoleAndIsFlagged(Message.MessageRole role, Boolean isFlagged, Pageable pageable);
+    
+    @Query("SELECT m FROM Message m JOIN m.chatSession cs WHERE cs.userId = :userId ORDER BY m.timestamp DESC")
+    Page<Message> findByUserId(@Param("userId") Long userId, Pageable pageable);
 }

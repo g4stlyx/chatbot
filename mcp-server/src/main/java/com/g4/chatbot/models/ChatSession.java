@@ -40,6 +40,18 @@ public class ChatSession {
     @Column(name = "is_public", nullable = false)
     private Boolean isPublic = false;
     
+    @Column(name = "is_flagged", nullable = false)
+    private Boolean isFlagged = false;
+    
+    @Column(name = "flag_reason", columnDefinition = "TEXT")
+    private String flagReason;
+    
+    @Column(name = "flagged_by")
+    private Long flaggedBy;
+    
+    @Column(name = "flagged_at")
+    private LocalDateTime flaggedAt;
+    
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
     

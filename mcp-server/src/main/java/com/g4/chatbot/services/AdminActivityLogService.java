@@ -1,0 +1,139 @@
+package com.g4.chatbot.services;
+
+import com.g4.chatbot.dto.admin.AdminActivityLogDTO;
+import com.g4.chatbot.dto.admin.AdminActivityLogListResponse;
+import com.g4.chatbot.models.Admin;
+import com.g4.chatbot.models.AdminActivityLog;
+import com.g4.chatbot.repos.AdminActivityLogRepository;
+import com.g4.chatbot.repos.AdminRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class AdminActivityLogService {
+    
+    private final AdminActivityLogRepository activityLogRepository;
+    private final AdminRepository adminRepository;
+    
+    /**
+     * Get all activity logs with pagination and optional filtering
+     */
+    @Transactional(readOnly = true)
+    public AdminActivityLogListResponse getAllActivityLogs(
+            Long adminId,
+            String action,
+            String resourceType,
+            LocalDateTime startDate,
+            int page,
+            int size,
+            String sortBy,
+            String sortDirection
+    ) {
+        Sort.Direction direction = sortDirection.equalsIgnoreCase("asc") ? 
+                Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        
+        Page<AdminActivityLog> logPage;
+        
+        // Apply filters
+        if (adminId != null) {
+            logPage = activityLogRepository.findByAdminIdOrderByCreatedAtDesc(adminId, pageable);
+        } else {
+            logPage = activityLogRepository.findAllByOrderByCreatedAtDesc(pageable);
+        }
+        
+        List<AdminActivityLogDTO> logDTOs = logPage.getContent().stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+        
+        return AdminActivityLogListResponse.builder()
+                .logs(logDTOs)
+                .currentPage(logPage.getNumber())
+                .totalPages(logPage.getTotalPages())
+                .totalElements(logPage.getTotalElements())
+                .pageSize(logPage.getSize())
+                .hasNext(logPage.hasNext())
+                .hasPrevious(logPage.hasPrevious())
+                .build();
+    }
+    
+    /**
+     * Get activity log by ID
+     */
+    @Transactional(readOnly = true)
+    public AdminActivityLogDTO getActivityLogById(Long logId) {
+        AdminActivityLog log = activityLogRepository.findById(logId)
+                .orElseThrow(() -> new RuntimeException("Activity log not found with ID: " + logId));
+        
+        return convertToDTO(log);
+    }
+    
+    /**
+     * Delete activity log (for cleanup purposes)
+     */
+    @Transactional
+    public void deleteActivityLog(Long logId) {
+        if (!activityLogRepository.existsById(logId)) {
+            throw new RuntimeException("Activity log not found with ID: " + logId);
+        }
+        
+        activityLogRepository.deleteById(logId);
+        log.info("Deleted activity log with ID: {}", logId);
+    }
+    
+    /**
+     * Delete old activity logs (cleanup utility)
+     */
+    @Transactional
+    public int deleteOldActivityLogs(LocalDateTime beforeDate) {
+        List<AdminActivityLog> oldLogs = activityLogRepository
+                .findByCreatedAtAfterOrderByCreatedAtDesc(beforeDate);
+        
+        int count = oldLogs.size();
+        activityLogRepository.deleteAll(oldLogs);
+        
+        log.info("Deleted {} old activity logs before date: {}", count, beforeDate);
+        return count;
+    }
+    
+    /**
+     * Get activity statistics for an admin
+     */
+    @Transactional(readOnly = true)
+    public long getActivityCountForAdmin(Long adminId, LocalDateTime since) {
+        return activityLogRepository.countByAdminIdAndCreatedAtAfter(adminId, since);
+    }
+    
+    /**
+     * Convert entity to DTO
+     */
+    private AdminActivityLogDTO convertToDTO(AdminActivityLog log) {
+        Admin admin = adminRepository.findById(log.getAdminId()).orElse(null);
+        
+        return AdminActivityLogDTO.builder()
+                .id(log.getId())
+                .adminId(log.getAdminId())
+                .adminUsername(admin != null ? admin.getUsername() : "Unknown")
+                .adminEmail(admin != null ? admin.getEmail() : "Unknown")
+                .action(log.getAction())
+                .resourceType(log.getResourceType())
+                .resourceId(log.getResourceId())
+                .details(log.getDetails())
+                .ipAddress(log.getIpAddress())
+                .userAgent(log.getUserAgent())
+                .createdAt(log.getCreatedAt())
+                .build();
+    }
+}
