@@ -105,16 +105,13 @@ public class AuthService {
         emailService.sendVerificationEmail(user.getEmail(), verificationToken.getToken(), 
             user.getFirstName() != null ? user.getFirstName() : user.getUsername());
         
-        // Generate tokens for automatic login after registration
-        String accessToken = jwtUtils.generateToken(user.getUsername(), user.getId(), "user", null);
-        String refreshToken = jwtUtils.generateRefreshToken(user.getUsername());
-        
+        // Do NOT generate tokens - user must verify email first before logging in
         return AuthResponse.builder()
             .success(true)
-            .message("User registered successfully. Please check your email to verify your account.")
-            .accessToken(accessToken)
-            .refreshToken(refreshToken)
-            .expiresIn(jwtUtils.getAccessTokenExpiration())
+            .message("User registered successfully. Please check your email to verify your account before logging in.")
+            .accessToken(null)
+            .refreshToken(null)
+            .expiresIn(null)
             .user(AuthResponse.UserInfo.builder()
                 .id(user.getId())
                 .username(user.getUsername())
