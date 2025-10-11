@@ -8,6 +8,8 @@ import { AuthProvider } from "./context/AuthContext";
 import { ChatProvider } from "./context/ChatContext";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
+import VerificationPendingPage from "./pages/VerificationPendingPage";
+import EmailVerifyPage from "./pages/EmailVerifyPage";
 import ChatPage from "./pages/ChatPage";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import "./App.css";
@@ -20,6 +22,8 @@ function App() {
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/verification-pending" element={<VerificationPendingPage />} />
+            <Route path="/verify" element={<EmailVerifyPage />} />
             <Route
               path="/chat"
               element={

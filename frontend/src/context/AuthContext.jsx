@@ -41,13 +41,11 @@ export const AuthProvider = ({ children }) => {
     try {
       setError(null);
       const response = await authAPI.register(userData);
-      const { accessToken, user: newUser } = response.data;
-
-      localStorage.setItem("token", accessToken);
-      localStorage.setItem("user", JSON.stringify(newUser));
-      setUser(newUser);
-
-      return { success: true };
+      
+      // Don't auto-login after registration
+      // User must verify email first
+      
+      return { success: true, email: userData.email };
     } catch (err) {
       const errorMessage = err.response?.data?.message || "Registration failed";
       setError(errorMessage);

@@ -11,6 +11,7 @@ const LoginPage = () => {
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isEmailVerificationError, setIsEmailVerificationError] = useState(false);
 
   // Redirect if already authenticated
   if (isAuthenticated) {
@@ -23,18 +24,26 @@ const LoginPage = () => {
       [e.target.name]: e.target.value,
     });
     setError("");
+    setIsEmailVerificationError(false);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setIsEmailVerificationError(false);
 
     const result = await login(formData.username, formData.password);
 
     if (result.success) {
       navigate("/chat");
     } else {
+      // Check if it's an email verification error
+      const errorMsg = result.error || "";
+      if (errorMsg.toLowerCase().includes("email") && 
+          errorMsg.toLowerCase().includes("verif")) {
+        setIsEmailVerificationError(true);
+      }
       setError(result.error);
     }
 
@@ -47,7 +56,21 @@ const LoginPage = () => {
         <h1 className="auth-title">Welcome Back</h1>
         <p className="auth-subtitle">Login to your chatbot account</p>
 
-        {error && <div className="error-message">{error}</div>}
+        {error && (
+          <div 
+            className="error-message" 
+            style={isEmailVerificationError ? {
+              backgroundColor: '#fef3c7',
+              color: '#92400e',
+              border: '1px solid #fbbf24',
+            } : {}}
+          >
+            {isEmailVerificationError && (
+              <span style={{ marginRight: '8px', fontSize: '18px' }}>⚠️</span>
+            )}
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">

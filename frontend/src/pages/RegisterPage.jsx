@@ -56,7 +56,10 @@ const RegisterPage = () => {
     });
 
     if (result.success) {
-      navigate("/chat");
+      // Navigate to verification pending page instead of chat
+      navigate("/verification-pending", { 
+        state: { email: formData.email } 
+      });
     } else {
       setError(result.error);
     }
