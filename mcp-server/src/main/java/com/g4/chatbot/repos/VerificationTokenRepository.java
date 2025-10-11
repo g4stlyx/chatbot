@@ -15,6 +15,9 @@ public interface VerificationTokenRepository extends JpaRepository<VerificationT
     Optional<VerificationToken> findByUserIdAndUserType(Long userId, String userType);
     Optional<VerificationToken> findFirstByUserTypeOrderByCreatedDateDesc(String userType);
     
+    // Delete methods
+    void deleteByUserIdAndUserType(Long userId, String userType);
+    
     // Admin panel queries
     Page<VerificationToken> findAllByOrderByCreatedDateDesc(Pageable pageable);
     Page<VerificationToken> findByUserTypeOrderByCreatedDateDesc(String userType, Pageable pageable);

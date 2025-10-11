@@ -519,6 +519,49 @@ public class AuthService {
     }
     
     /**
+     * Resend verification email
+     */
+    @Transactional
+    public boolean resendVerificationEmail(String email) {
+        try {
+            // Try to find user by email
+            Optional<User> userOpt = userRepository.findByEmail(email);
+            
+            if (userOpt.isEmpty()) {
+                // Return true for security reasons (don't reveal if email exists)
+                log.warn("Verification resend requested for non-existent email: {}", email);
+                return true;
+            }
+            
+            User user = userOpt.get();
+            
+            // Check if user is already verified
+            if (user.getEmailVerified()) {
+                log.info("Verification resend requested for already verified email: {}", email);
+                return true; // Return true but don't send email
+            }
+            
+            // Delete any existing verification tokens for this user
+            verificationTokenRepository.deleteByUserIdAndUserType(user.getId(), "user");
+            
+            // Create new verification token
+            VerificationToken verificationToken = new VerificationToken(user.getId(), "user");
+            verificationTokenRepository.save(verificationToken);
+            
+            // Send verification email
+            emailService.sendVerificationEmail(user.getEmail(), verificationToken.getToken(), 
+                user.getFirstName() != null ? user.getFirstName() : user.getUsername());
+            
+            log.info("Verification email resent to: {}", email);
+            return true;
+            
+        } catch (Exception e) {
+            log.error("Resend verification email failed for email: {}", email, e);
+            return false;
+        }
+    }
+    
+    /**
      * Get client IP address from request
      */
     private String getClientIpAddress(HttpServletRequest request) {

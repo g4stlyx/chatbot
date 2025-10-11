@@ -16,6 +16,7 @@ import com.g4.chatbot.dto.auth.AuthResponse;
 import com.g4.chatbot.dto.auth.ForgotPasswordRequest;
 import com.g4.chatbot.dto.auth.LoginRequest;
 import com.g4.chatbot.dto.auth.RegisterRequest;
+import com.g4.chatbot.dto.auth.ResendVerificationRequest;
 import com.g4.chatbot.dto.auth.ResetPasswordRequest;
 import com.g4.chatbot.dto.auth.VerifyPasswordRequest;
 import com.g4.chatbot.services.AuthService;
@@ -164,6 +165,24 @@ public class AuthController {
         } else {
             log.warn("Email verification failed - invalid or expired token");
         }
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Resend verification email
+     */
+    @PostMapping("/resend-verification")
+    public ResponseEntity<Map<String, Object>> resendVerification(
+            @RequestBody ResendVerificationRequest request) {
+
+        log.info("Resend verification email request for email: {}", request.getEmail());
+
+        boolean success = authService.resendVerificationEmail(request.getEmail());
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", success);
+        response.put("message", "If the email exists and is not verified, a new verification link has been sent.");
 
         return ResponseEntity.ok(response);
     }
