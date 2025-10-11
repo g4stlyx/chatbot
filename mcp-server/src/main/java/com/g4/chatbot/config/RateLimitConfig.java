@@ -24,6 +24,12 @@ public class RateLimitConfig {
     @Value("${app.rate-limit.login.window}")
     private long loginWindow;
 
+    @Value("${app.rate-limit.email-verification.attempts}")
+    private int emailVerificationAttempts;
+
+    @Value("${app.rate-limit.email-verification.window}")
+    private long emailVerificationWindow;
+
     // Getters for configuration values
     public int getApiCalls() { return apiCalls; }
     public long getApiWindow() { return apiWindow; }
@@ -31,4 +37,6 @@ public class RateLimitConfig {
     public long getChatWindow() { return chatWindow; }
     public int getLoginAttempts() { return loginAttempts; }
     public long getLoginWindow() { return loginWindow; }
+    public int getEmailVerificationAttempts() { return emailVerificationAttempts; }
+    public long getEmailVerificationWindow() { return emailVerificationWindow; }
 }

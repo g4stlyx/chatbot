@@ -42,6 +42,14 @@ public class RateLimitService {
     }
 
     /**
+     * Check if email verification resend rate limit is exceeded for an email
+     */
+    public boolean isEmailVerificationRateLimitExceeded(String email) {
+        String key = "email_verification_rate_limit:" + email;
+        return isRateLimitExceeded(key, rateLimitConfig.getEmailVerificationAttempts(), rateLimitConfig.getEmailVerificationWindow());
+    }
+
+    /**
      * Generic rate limiting using sliding window counter
      */
     private boolean isRateLimitExceeded(String key, int maxRequests, long windowMs) {

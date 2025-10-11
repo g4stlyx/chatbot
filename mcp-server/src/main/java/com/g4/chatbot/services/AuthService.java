@@ -44,6 +44,9 @@ public class AuthService {
     @Autowired
     private PasswordResetTokenRepository passwordResetTokenRepository;
     
+    @Autowired
+    private RateLimitService rateLimitService;
+    
     /**
      * Register a new user (only users can register via API, admins must be created manually)
      */
@@ -524,6 +527,13 @@ public class AuthService {
     @Transactional
     public boolean resendVerificationEmail(String email) {
         try {
+            // Check rate limiting first
+            if (rateLimitService.isEmailVerificationRateLimitExceeded(email)) {
+                log.warn("Rate limit exceeded for verification email resend: {}", email);
+                // Return true for security reasons (don't reveal rate limiting details)
+                return true;
+            }
+            
             // Try to find user by email
             Optional<User> userOpt = userRepository.findByEmail(email);
             
