@@ -2,6 +2,7 @@ package com.g4.chatbot.controllers;
 
 import com.g4.chatbot.dto.admin.*;
 import com.g4.chatbot.services.AdminManagementService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,13 +32,14 @@ public class AdminManagementController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDirection,
-            Authentication authentication) {
+            Authentication authentication,
+            HttpServletRequest httpRequest) {
         
         Long requestingAdminId = (Long) authentication.getDetails();
         log.info("Admin {} fetching all admins - page: {}, size: {}", requestingAdminId, page, size);
         
         AdminListResponse response = adminManagementService.getAllAdmins(
-            requestingAdminId, page, size, sortBy, sortDirection);
+            requestingAdminId, page, size, sortBy, sortDirection, httpRequest);
         return ResponseEntity.ok(response);
     }
     
@@ -48,12 +50,13 @@ public class AdminManagementController {
     @GetMapping("/{adminId}")
     public ResponseEntity<AdminManagementDTO> getAdminById(
             @PathVariable Long adminId,
-            Authentication authentication) {
+            Authentication authentication,
+            HttpServletRequest httpRequest) {
         
         Long requestingAdminId = (Long) authentication.getDetails();
         log.info("Admin {} fetching admin {}", requestingAdminId, adminId);
         
-        AdminManagementDTO admin = adminManagementService.getAdminById(requestingAdminId, adminId);
+        AdminManagementDTO admin = adminManagementService.getAdminById(requestingAdminId, adminId, httpRequest);
         return ResponseEntity.ok(admin);
     }
     
@@ -64,12 +67,13 @@ public class AdminManagementController {
     @PostMapping
     public ResponseEntity<AdminManagementDTO> createAdmin(
             @Valid @RequestBody CreateAdminRequest request,
-            Authentication authentication) {
+            Authentication authentication,
+            HttpServletRequest httpRequest) {
         
         Long requestingAdminId = (Long) authentication.getDetails();
         log.info("Admin {} creating new admin with level {}", requestingAdminId, request.getLevel());
         
-        AdminManagementDTO admin = adminManagementService.createAdmin(requestingAdminId, request);
+        AdminManagementDTO admin = adminManagementService.createAdmin(requestingAdminId, request, httpRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(admin);
     }
     
@@ -81,13 +85,14 @@ public class AdminManagementController {
     public ResponseEntity<AdminManagementDTO> updateAdmin(
             @PathVariable Long adminId,
             @Valid @RequestBody UpdateAdminRequest request,
-            Authentication authentication) {
+            Authentication authentication,
+            HttpServletRequest httpRequest) {
         
         Long requestingAdminId = (Long) authentication.getDetails();
         log.info("Admin {} updating admin {}", requestingAdminId, adminId);
         
         AdminManagementDTO admin = adminManagementService.updateAdmin(
-            requestingAdminId, adminId, request);
+            requestingAdminId, adminId, request, httpRequest);
         return ResponseEntity.ok(admin);
     }
     
@@ -98,12 +103,13 @@ public class AdminManagementController {
     @DeleteMapping("/{adminId}")
     public ResponseEntity<Map<String, Object>> deleteAdmin(
             @PathVariable Long adminId,
-            Authentication authentication) {
+            Authentication authentication,
+            HttpServletRequest httpRequest) {
         
         Long requestingAdminId = (Long) authentication.getDetails();
         log.info("Admin {} deleting admin {}", requestingAdminId, adminId);
         
-        adminManagementService.deleteAdmin(requestingAdminId, adminId);
+        adminManagementService.deleteAdmin(requestingAdminId, adminId, httpRequest);
         
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
@@ -119,12 +125,13 @@ public class AdminManagementController {
     @PostMapping("/{adminId}/activate")
     public ResponseEntity<AdminManagementDTO> activateAdmin(
             @PathVariable Long adminId,
-            Authentication authentication) {
+            Authentication authentication,
+            HttpServletRequest httpRequest) {
         
         Long requestingAdminId = (Long) authentication.getDetails();
         log.info("Admin {} activating admin {}", requestingAdminId, adminId);
         
-        AdminManagementDTO admin = adminManagementService.activateAdmin(requestingAdminId, adminId);
+        AdminManagementDTO admin = adminManagementService.activateAdmin(requestingAdminId, adminId, httpRequest);
         return ResponseEntity.ok(admin);
     }
     
@@ -135,12 +142,13 @@ public class AdminManagementController {
     @PostMapping("/{adminId}/deactivate")
     public ResponseEntity<AdminManagementDTO> deactivateAdmin(
             @PathVariable Long adminId,
-            Authentication authentication) {
+            Authentication authentication,
+            HttpServletRequest httpRequest) {
         
         Long requestingAdminId = (Long) authentication.getDetails();
         log.info("Admin {} deactivating admin {}", requestingAdminId, adminId);
         
-        AdminManagementDTO admin = adminManagementService.deactivateAdmin(requestingAdminId, adminId);
+        AdminManagementDTO admin = adminManagementService.deactivateAdmin(requestingAdminId, adminId, httpRequest);
         return ResponseEntity.ok(admin);
     }
     

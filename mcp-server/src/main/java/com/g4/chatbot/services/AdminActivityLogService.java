@@ -26,6 +26,7 @@ public class AdminActivityLogService {
     
     private final AdminActivityLogRepository activityLogRepository;
     private final AdminRepository adminRepository;
+    private final AdminActivityLogger adminActivityLogger;
     
     /**
      * Get all activity logs with pagination and optional filtering
@@ -39,7 +40,9 @@ public class AdminActivityLogService {
             int page,
             int size,
             String sortBy,
-            String sortDirection
+            String sortDirection,
+            Long currentAdminId,
+            jakarta.servlet.http.HttpServletRequest httpRequest
     ) {
         Sort.Direction direction = sortDirection.equalsIgnoreCase("asc") ? 
                 Sort.Direction.ASC : Sort.Direction.DESC;
@@ -58,6 +61,28 @@ public class AdminActivityLogService {
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
         
+        // Log activity (Note: This creates self-referential logs - reading activity logs generates new activity logs)
+        java.util.Map<String, Object> details = new java.util.HashMap<>();
+        details.put("page", page);
+        details.put("size", size);
+        details.put("sortBy", sortBy);
+        details.put("sortDirection", sortDirection);
+        if (adminId != null) details.put("filterAdminId", adminId);
+        if (action != null) details.put("filterAction", action);
+        if (resourceType != null) details.put("filterResourceType", resourceType);
+        if (startDate != null) details.put("filterStartDate", startDate.toString());
+        details.put("resultCount", logDTOs.size());
+        details.put("totalElements", logPage.getTotalElements());
+        
+        adminActivityLogger.logActivity(
+                currentAdminId,
+                "READ",
+                "AdminActivityLog",
+                "list",
+                details,
+                httpRequest
+        );
+        
         return AdminActivityLogListResponse.builder()
                 .logs(logDTOs)
                 .currentPage(logPage.getNumber())
@@ -73,9 +98,25 @@ public class AdminActivityLogService {
      * Get activity log by ID
      */
     @Transactional(readOnly = true)
-    public AdminActivityLogDTO getActivityLogById(Long logId) {
+    public AdminActivityLogDTO getActivityLogById(Long logId, Long currentAdminId, jakarta.servlet.http.HttpServletRequest httpRequest) {
         AdminActivityLog log = activityLogRepository.findById(logId)
                 .orElseThrow(() -> new RuntimeException("Activity log not found with ID: " + logId));
+        
+        // Log activity (Note: This creates self-referential logs - reading activity logs generates new activity logs)
+        java.util.Map<String, Object> details = new java.util.HashMap<>();
+        details.put("logId", logId);
+        details.put("targetAdminId", log.getAdminId());
+        details.put("action", log.getAction());
+        details.put("resourceType", log.getResourceType());
+        
+        adminActivityLogger.logActivity(
+                currentAdminId,
+                "READ",
+                "AdminActivityLog",
+                logId.toString(),
+                details,
+                httpRequest
+        );
         
         return convertToDTO(log);
     }

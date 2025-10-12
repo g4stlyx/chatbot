@@ -7,6 +7,7 @@ import com.g4.chatbot.exception.UnauthorizedException;
 import com.g4.chatbot.models.Admin;
 import com.g4.chatbot.repos.AdminRepository;
 import com.g4.chatbot.repos.UserRepository;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -16,7 +17,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -31,6 +34,9 @@ public class AdminManagementService {
     
     @Autowired
     private PasswordService passwordService;
+    
+    @Autowired
+    private AdminActivityLogger activityLogger;
     
     /**
      * Check if requesting admin has permission to manage target admin
@@ -103,7 +109,7 @@ public class AdminManagementService {
      * Get all admins with pagination (only returns admins that requesting admin can see)
      */
     public AdminListResponse getAllAdmins(Long requestingAdminId, int page, int size, 
-                                          String sortBy, String sortDirection) {
+                                          String sortBy, String sortDirection, HttpServletRequest httpRequest) {
         log.info("Admin {} fetching admins - page: {}, size: {}, sortBy: {}, direction: {}", 
             requestingAdminId, page, size, sortBy, sortDirection);
         
@@ -133,6 +139,16 @@ public class AdminManagementService {
             .map(this::mapToDTO)
             .collect(Collectors.toList());
         
+        // Log the READ activity
+        Map<String, Object> details = new HashMap<>();
+        details.put("page", page);
+        details.put("size", size);
+        details.put("sortBy", sortBy);
+        details.put("sortDirection", sortDirection);
+        details.put("resultCount", admins.size());
+        details.put("totalItems", adminPage.getTotalElements());
+        activityLogger.logActivity(requestingAdminId, "READ", "Admin", "list", details, httpRequest);
+        
         return AdminListResponse.builder()
             .admins(admins)
             .currentPage(adminPage.getNumber())
@@ -145,7 +161,7 @@ public class AdminManagementService {
     /**
      * Get admin by ID
      */
-    public AdminManagementDTO getAdminById(Long requestingAdminId, Long targetAdminId) {
+    public AdminManagementDTO getAdminById(Long requestingAdminId, Long targetAdminId, HttpServletRequest httpRequest) {
         log.info("Admin {} fetching admin {}", requestingAdminId, targetAdminId);
         
         Admin requestingAdmin = adminRepository.findById(requestingAdminId)
@@ -160,6 +176,12 @@ public class AdminManagementService {
             throw new UnauthorizedException("You don't have permission to view this admin");
         }
         
+        // Log the READ activity
+        Map<String, Object> details = new HashMap<>();
+        details.put("targetAdminLevel", targetAdmin.getLevel());
+        details.put("targetAdminUsername", targetAdmin.getUsername());
+        activityLogger.logActivity(requestingAdminId, "READ", "Admin", targetAdminId.toString(), details, httpRequest);
+        
         return mapToDTO(targetAdmin);
     }
     
@@ -167,7 +189,7 @@ public class AdminManagementService {
      * Create a new admin (with level validation)
      */
     @Transactional
-    public AdminManagementDTO createAdmin(Long requestingAdminId, CreateAdminRequest request) {
+    public AdminManagementDTO createAdmin(Long requestingAdminId, CreateAdminRequest request, HttpServletRequest httpRequest) {
         log.info("Admin {} creating new admin with level {}", requestingAdminId, request.getLevel());
         
         Admin requestingAdmin = adminRepository.findById(requestingAdminId)
@@ -213,6 +235,13 @@ public class AdminManagementService {
         admin = adminRepository.save(admin);
         log.info("Admin created successfully with ID: {}", admin.getId());
         
+        // Log activity
+        Map<String, Object> details = new HashMap<>();
+        details.put("username", admin.getUsername());
+        details.put("email", admin.getEmail());
+        details.put("level", admin.getLevel());
+        activityLogger.logCreate(requestingAdminId, "admin", admin.getId().toString(), details, httpRequest);
+        
         return mapToDTO(admin);
     }
     
@@ -221,7 +250,7 @@ public class AdminManagementService {
      */
     @Transactional
     public AdminManagementDTO updateAdmin(Long requestingAdminId, Long targetAdminId, 
-                                          UpdateAdminRequest request) {
+                                          UpdateAdminRequest request, HttpServletRequest httpRequest) {
         log.info("Admin {} updating admin {}", requestingAdminId, targetAdminId);
         
         Admin requestingAdmin = adminRepository.findById(requestingAdminId)
@@ -233,21 +262,27 @@ public class AdminManagementService {
         // Validate permission to update
         validateAdminPermission(requestingAdmin, targetAdmin, "update");
         
+        // Track changes for logging
+        Map<String, Object> changes = new HashMap<>();
+        
         // Check if email is being changed and if it's already taken
         if (request.getEmail() != null && !request.getEmail().equals(targetAdmin.getEmail())) {
             if (userRepository.existsByEmail(request.getEmail()) || 
                 adminRepository.existsByEmail(request.getEmail())) {
                 throw new BadRequestException("Email is already in use");
             }
+            changes.put("email", Map.of("old", targetAdmin.getEmail(), "new", request.getEmail()));
             targetAdmin.setEmail(request.getEmail());
         }
         
         // Update fields if provided
         if (request.getFirstName() != null) {
+            changes.put("firstName", Map.of("old", targetAdmin.getFirstName(), "new", request.getFirstName()));
             targetAdmin.setFirstName(request.getFirstName());
         }
         
         if (request.getLastName() != null) {
+            changes.put("lastName", Map.of("old", targetAdmin.getLastName(), "new", request.getLastName()));
             targetAdmin.setLastName(request.getLastName());
         }
         
@@ -264,6 +299,7 @@ public class AdminManagementService {
             
             // Validate permission for new level
             validateAdminPermission(requestingAdmin, request.getLevel(), "assign level to");
+            changes.put("level", Map.of("old", targetAdmin.getLevel(), "new", request.getLevel()));
             targetAdmin.setLevel(request.getLevel());
         }
         
@@ -272,11 +308,15 @@ public class AdminManagementService {
         }
         
         if (request.getIsActive() != null) {
+            changes.put("isActive", Map.of("old", targetAdmin.getIsActive(), "new", request.getIsActive()));
             targetAdmin.setIsActive(request.getIsActive());
         }
         
         targetAdmin = adminRepository.save(targetAdmin);
         log.info("Admin updated successfully: {}", targetAdminId);
+        
+        // Log activity
+        activityLogger.logUpdate(requestingAdminId, "admin", targetAdminId.toString(), changes, httpRequest);
         
         return mapToDTO(targetAdmin);
     }
@@ -285,7 +325,7 @@ public class AdminManagementService {
      * Delete admin by ID (soft delete - deactivate)
      */
     @Transactional
-    public void deleteAdmin(Long requestingAdminId, Long targetAdminId) {
+    public void deleteAdmin(Long requestingAdminId, Long targetAdminId, HttpServletRequest httpRequest) {
         log.info("Admin {} deleting (deactivating) admin {}", requestingAdminId, targetAdminId);
         
         Admin requestingAdmin = adminRepository.findById(requestingAdminId)
@@ -306,13 +346,16 @@ public class AdminManagementService {
         adminRepository.save(targetAdmin);
         
         log.info("Admin deactivated successfully: {}", targetAdminId);
+        
+        // Log activity
+        activityLogger.logDelete(requestingAdminId, "admin", targetAdminId.toString(), httpRequest);
     }
     
     /**
      * Activate admin
      */
     @Transactional
-    public AdminManagementDTO activateAdmin(Long requestingAdminId, Long targetAdminId) {
+    public AdminManagementDTO activateAdmin(Long requestingAdminId, Long targetAdminId, HttpServletRequest httpRequest) {
         log.info("Admin {} activating admin {}", requestingAdminId, targetAdminId);
         
         Admin requestingAdmin = adminRepository.findById(requestingAdminId)
@@ -331,6 +374,9 @@ public class AdminManagementService {
         targetAdmin = adminRepository.save(targetAdmin);
         log.info("Admin activated successfully: {}", targetAdminId);
         
+        // Log activity
+        activityLogger.logActivate(requestingAdminId, "admin", targetAdminId.toString(), httpRequest);
+        
         return mapToDTO(targetAdmin);
     }
     
@@ -338,7 +384,7 @@ public class AdminManagementService {
      * Deactivate admin
      */
     @Transactional
-    public AdminManagementDTO deactivateAdmin(Long requestingAdminId, Long targetAdminId) {
+    public AdminManagementDTO deactivateAdmin(Long requestingAdminId, Long targetAdminId, HttpServletRequest httpRequest) {
         log.info("Admin {} deactivating admin {}", requestingAdminId, targetAdminId);
         
         Admin requestingAdmin = adminRepository.findById(requestingAdminId)
@@ -357,8 +403,10 @@ public class AdminManagementService {
         
         targetAdmin.setIsActive(false);
         targetAdmin = adminRepository.save(targetAdmin);
-        
         log.info("Admin deactivated successfully: {}", targetAdminId);
+        
+        // Log activity
+        activityLogger.logDeactivate(requestingAdminId, "admin", targetAdminId.toString(), httpRequest);
         
         return mapToDTO(targetAdmin);
     }

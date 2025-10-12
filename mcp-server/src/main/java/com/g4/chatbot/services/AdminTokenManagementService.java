@@ -11,8 +11,10 @@ import com.g4.chatbot.repos.AdminRepository;
 import com.g4.chatbot.repos.PasswordResetTokenRepository;
 import com.g4.chatbot.repos.UserRepository;
 import com.g4.chatbot.repos.VerificationTokenRepository;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -21,7 +23,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -34,6 +38,9 @@ public class AdminTokenManagementService {
     private final UserRepository userRepository;
     private final AdminRepository adminRepository;
     
+    @Autowired
+    private AdminActivityLogger adminActivityLogger;
+    
     /**
      * Get all password reset tokens with pagination and filtering
      */
@@ -44,7 +51,9 @@ public class AdminTokenManagementService {
             int page,
             int size,
             String sortBy,
-            String sortDirection
+            String sortDirection,
+            Long adminId,
+            HttpServletRequest httpRequest
     ) {
         Sort.Direction direction = sortDirection.equalsIgnoreCase("asc") ? 
                 Sort.Direction.ASC : Sort.Direction.DESC;
@@ -65,6 +74,26 @@ public class AdminTokenManagementService {
                 .map(this::convertPasswordResetTokenToDTO)
                 .collect(Collectors.toList());
         
+        // Log activity
+        Map<String, Object> details = new HashMap<>();
+        details.put("page", page);
+        details.put("size", size);
+        details.put("sortBy", sortBy);
+        details.put("sortDirection", sortDirection);
+        if (userType != null) details.put("userType", userType);
+        if (includeExpired != null) details.put("includeExpired", includeExpired);
+        details.put("resultCount", tokenDTOs.size());
+        details.put("totalElements", tokenPage.getTotalElements());
+        
+        adminActivityLogger.logActivity(
+                adminId,
+                "READ",
+                "PasswordResetToken",
+                "list",
+                details,
+                httpRequest
+        );
+        
         return TokenListResponse.<PasswordResetTokenDTO>builder()
                 .tokens(tokenDTOs)
                 .currentPage(tokenPage.getNumber())
@@ -80,9 +109,25 @@ public class AdminTokenManagementService {
      * Get password reset token by ID
      */
     @Transactional(readOnly = true)
-    public PasswordResetTokenDTO getPasswordResetTokenById(Long tokenId) {
+    public PasswordResetTokenDTO getPasswordResetTokenById(Long tokenId, Long adminId, HttpServletRequest httpRequest) {
         PasswordResetToken token = passwordResetTokenRepository.findById(tokenId)
                 .orElseThrow(() -> new RuntimeException("Password reset token not found with ID: " + tokenId));
+        
+        // Log activity
+        Map<String, Object> details = new HashMap<>();
+        details.put("tokenId", tokenId);
+        details.put("userId", token.getUserId());
+        details.put("userType", token.getUserType());
+        details.put("isExpired", token.getExpiryDate().isBefore(LocalDateTime.now()));
+        
+        adminActivityLogger.logActivity(
+                adminId,
+                "READ",
+                "PasswordResetToken",
+                tokenId.toString(),
+                details,
+                httpRequest
+        );
         
         return convertPasswordResetTokenToDTO(token);
     }
@@ -97,7 +142,9 @@ public class AdminTokenManagementService {
             int page,
             int size,
             String sortBy,
-            String sortDirection
+            String sortDirection,
+            Long adminId,
+            HttpServletRequest httpRequest
     ) {
         Sort.Direction direction = sortDirection.equalsIgnoreCase("asc") ? 
                 Sort.Direction.ASC : Sort.Direction.DESC;
@@ -118,6 +165,26 @@ public class AdminTokenManagementService {
                 .map(this::convertVerificationTokenToDTO)
                 .collect(Collectors.toList());
         
+        // Log activity
+        Map<String, Object> details = new HashMap<>();
+        details.put("page", page);
+        details.put("size", size);
+        details.put("sortBy", sortBy);
+        details.put("sortDirection", sortDirection);
+        if (userType != null) details.put("userType", userType);
+        if (includeExpired != null) details.put("includeExpired", includeExpired);
+        details.put("resultCount", tokenDTOs.size());
+        details.put("totalElements", tokenPage.getTotalElements());
+        
+        adminActivityLogger.logActivity(
+                adminId,
+                "READ",
+                "VerificationToken",
+                "list",
+                details,
+                httpRequest
+        );
+        
         return TokenListResponse.<VerificationTokenDTO>builder()
                 .tokens(tokenDTOs)
                 .currentPage(tokenPage.getNumber())
@@ -133,9 +200,25 @@ public class AdminTokenManagementService {
      * Get verification token by ID
      */
     @Transactional(readOnly = true)
-    public VerificationTokenDTO getVerificationTokenById(Long tokenId) {
+    public VerificationTokenDTO getVerificationTokenById(Long tokenId, Long adminId, HttpServletRequest httpRequest) {
         VerificationToken token = verificationTokenRepository.findById(tokenId)
                 .orElseThrow(() -> new RuntimeException("Verification token not found with ID: " + tokenId));
+        
+        // Log activity
+        Map<String, Object> details = new HashMap<>();
+        details.put("tokenId", tokenId);
+        details.put("userId", token.getUserId());
+        details.put("userType", token.getUserType());
+        details.put("isExpired", token.getExpiryDate().isBefore(LocalDateTime.now()));
+        
+        adminActivityLogger.logActivity(
+                adminId,
+                "READ",
+                "VerificationToken",
+                tokenId.toString(),
+                details,
+                httpRequest
+        );
         
         return convertVerificationTokenToDTO(token);
     }
@@ -144,33 +227,53 @@ public class AdminTokenManagementService {
      * Delete password reset token
      */
     @Transactional
-    public void deletePasswordResetToken(Long tokenId) {
-        if (!passwordResetTokenRepository.existsById(tokenId)) {
-            throw new RuntimeException("Password reset token not found with ID: " + tokenId);
-        }
+    public void deletePasswordResetToken(Long tokenId, Long adminId, HttpServletRequest request) {
+        PasswordResetToken token = passwordResetTokenRepository.findById(tokenId)
+                .orElseThrow(() -> new RuntimeException("Password reset token not found with ID: " + tokenId));
+        
+        // Collect token details before deletion
+        Map<String, Object> details = new HashMap<>();
+        details.put("userType", token.getUserType());
+        details.put("userId", token.getUserId());
+        details.put("expiryDate", token.getExpiryDate().toString());
+        details.put("wasExpired", token.getExpiryDate().isBefore(LocalDateTime.now()));
         
         passwordResetTokenRepository.deleteById(tokenId);
-        log.info("Deleted password reset token with ID: {}", tokenId);
+        
+        // Log the activity
+        adminActivityLogger.logActivity(adminId, "DELETE", "PasswordResetToken", tokenId.toString(), details, request);
+        
+        log.info("Deleted password reset token with ID: {} by admin {}", tokenId, adminId);
     }
     
     /**
      * Delete verification token
      */
     @Transactional
-    public void deleteVerificationToken(Long tokenId) {
-        if (!verificationTokenRepository.existsById(tokenId)) {
-            throw new RuntimeException("Verification token not found with ID: " + tokenId);
-        }
+    public void deleteVerificationToken(Long tokenId, Long adminId, HttpServletRequest request) {
+        VerificationToken token = verificationTokenRepository.findById(tokenId)
+                .orElseThrow(() -> new RuntimeException("Verification token not found with ID: " + tokenId));
+        
+        // Collect token details before deletion
+        Map<String, Object> details = new HashMap<>();
+        details.put("userType", token.getUserType());
+        details.put("userId", token.getUserId());
+        details.put("expiryDate", token.getExpiryDate().toString());
+        details.put("wasExpired", token.getExpiryDate().isBefore(LocalDateTime.now()));
         
         verificationTokenRepository.deleteById(tokenId);
-        log.info("Deleted verification token with ID: {}", tokenId);
+        
+        // Log the activity
+        adminActivityLogger.logActivity(adminId, "DELETE", "VerificationToken", tokenId.toString(), details, request);
+        
+        log.info("Deleted verification token with ID: {} by admin {}", tokenId, adminId);
     }
     
     /**
      * Delete expired tokens (cleanup utility)
      */
     @Transactional
-    public int deleteExpiredPasswordResetTokens() {
+    public int deleteExpiredPasswordResetTokens(Long adminId, HttpServletRequest request) {
         Page<PasswordResetToken> expiredTokens = passwordResetTokenRepository
                 .findByExpiryDateBeforeOrderByCreatedDateDesc(LocalDateTime.now(), 
                         PageRequest.of(0, 1000));
@@ -178,7 +281,13 @@ public class AdminTokenManagementService {
         int count = expiredTokens.getContent().size();
         passwordResetTokenRepository.deleteAll(expiredTokens.getContent());
         
-        log.info("Deleted {} expired password reset tokens", count);
+        // Log the bulk cleanup activity
+        Map<String, Object> details = new HashMap<>();
+        details.put("tokensDeleted", count);
+        details.put("operation", "bulk_cleanup_expired");
+        adminActivityLogger.logActivity(adminId, "DELETE", "PasswordResetToken", "bulk", details, request);
+        
+        log.info("Deleted {} expired password reset tokens by admin {}", count, adminId);
         return count;
     }
     
@@ -186,7 +295,7 @@ public class AdminTokenManagementService {
      * Delete expired verification tokens (cleanup utility)
      */
     @Transactional
-    public int deleteExpiredVerificationTokens() {
+    public int deleteExpiredVerificationTokens(Long adminId, HttpServletRequest request) {
         Page<VerificationToken> expiredTokens = verificationTokenRepository
                 .findByExpiryDateBeforeOrderByCreatedDateDesc(LocalDateTime.now(), 
                         PageRequest.of(0, 1000));
@@ -194,7 +303,13 @@ public class AdminTokenManagementService {
         int count = expiredTokens.getContent().size();
         verificationTokenRepository.deleteAll(expiredTokens.getContent());
         
-        log.info("Deleted {} expired verification tokens", count);
+        // Log the bulk cleanup activity
+        Map<String, Object> details = new HashMap<>();
+        details.put("tokensDeleted", count);
+        details.put("operation", "bulk_cleanup_expired");
+        adminActivityLogger.logActivity(adminId, "DELETE", "VerificationToken", "bulk", details, request);
+        
+        log.info("Deleted {} expired verification tokens by admin {}", count, adminId);
         return count;
     }
     

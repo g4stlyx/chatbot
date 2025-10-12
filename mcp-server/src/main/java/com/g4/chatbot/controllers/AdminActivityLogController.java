@@ -42,7 +42,8 @@ public class AdminActivityLogController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDirection
+            @RequestParam(defaultValue = "desc") String sortDirection,
+            jakarta.servlet.http.HttpServletRequest httpRequest
     ) {
         try {
             // Extract admin ID and verify Level 0
@@ -58,7 +59,7 @@ public class AdminActivityLogController {
             }
             
             AdminActivityLogListResponse response = activityLogService.getAllActivityLogs(
-                    adminId, action, resourceType, startDate, page, size, sortBy, sortDirection
+                    adminId, action, resourceType, startDate, page, size, sortBy, sortDirection, currentAdminId, httpRequest
             );
             
             return ResponseEntity.ok(Map.of(
@@ -83,7 +84,8 @@ public class AdminActivityLogController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getActivityLogById(
             @RequestHeader("Authorization") String token,
-            @PathVariable Long logId
+            @PathVariable Long logId,
+            jakarta.servlet.http.HttpServletRequest httpRequest
     ) {
         try {
             // Extract admin ID and verify Level 0
@@ -98,7 +100,7 @@ public class AdminActivityLogController {
                 ));
             }
             
-            AdminActivityLogDTO logDTO = activityLogService.getActivityLogById(logId);
+            AdminActivityLogDTO logDTO = activityLogService.getActivityLogById(logId, currentAdminId, httpRequest);
             
             return ResponseEntity.ok(Map.of(
                     "success", true,

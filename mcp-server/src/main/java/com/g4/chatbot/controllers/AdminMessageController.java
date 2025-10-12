@@ -5,6 +5,7 @@ import com.g4.chatbot.dto.admin.message.AdminMessageListResponse;
 import com.g4.chatbot.dto.admin.message.FlagMessageRequest;
 import com.g4.chatbot.security.JwtUtils;
 import com.g4.chatbot.services.AdminMessageManagementService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,7 +46,8 @@ public class AdminMessageController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "timestamp") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDirection,
-            @RequestHeader("Authorization") String token) {
+            @RequestHeader("Authorization") String token,
+            HttpServletRequest httpRequest) {
 
         Long adminId = Long.valueOf(jwtUtils.extractUserId(token.substring(7)));
 
@@ -53,7 +55,7 @@ public class AdminMessageController {
                 adminId, page, size, sessionId, userId, role, isFlagged);
 
         AdminMessageListResponse response = adminMessageManagementService.getAllMessages(
-                sessionId, userId, role, isFlagged, page, size, sortBy, sortDirection, adminId);
+                sessionId, userId, role, isFlagged, page, size, sortBy, sortDirection, adminId, httpRequest);
 
         return ResponseEntity.ok(response);
     }
@@ -65,13 +67,14 @@ public class AdminMessageController {
     @GetMapping("/{messageId}")
     public ResponseEntity<AdminMessageDTO> getMessageById(
             @PathVariable Long messageId,
-            @RequestHeader("Authorization") String token) {
+            @RequestHeader("Authorization") String token,
+            HttpServletRequest httpRequest) {
 
         Long adminId = Long.valueOf(jwtUtils.extractUserId(token.substring(7)));
 
         log.info("Admin {} requesting message: {}", adminId, messageId);
 
-        AdminMessageDTO response = adminMessageManagementService.getMessageById(messageId, adminId);
+        AdminMessageDTO response = adminMessageManagementService.getMessageById(messageId, adminId, httpRequest);
 
         return ResponseEntity.ok(response);
     }
@@ -87,14 +90,15 @@ public class AdminMessageController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "timestamp") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDirection,
-            @RequestHeader("Authorization") String token) {
+            @RequestHeader("Authorization") String token,
+            HttpServletRequest httpRequest) {
 
         Long adminId = Long.valueOf(jwtUtils.extractUserId(token.substring(7)));
 
         log.info("Admin {} requesting messages for session: {}", adminId, sessionId);
 
         AdminMessageListResponse response = adminMessageManagementService.getMessagesBySession(
-                sessionId, page, size, sortBy, sortDirection, adminId);
+                sessionId, page, size, sortBy, sortDirection, adminId, httpRequest);
 
         return ResponseEntity.ok(response);
     }
@@ -108,13 +112,14 @@ public class AdminMessageController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> deleteMessage(
             @PathVariable Long messageId,
-            @RequestHeader("Authorization") String token) {
+            @RequestHeader("Authorization") String token,
+            HttpServletRequest httpRequest) {
 
         Long adminId = Long.valueOf(jwtUtils.extractUserId(token.substring(7)));
 
         log.info("Admin {} attempting to delete message: {}", adminId, messageId);
 
-        adminMessageManagementService.deleteMessage(messageId, adminId);
+        adminMessageManagementService.deleteMessage(messageId, adminId, httpRequest);
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
@@ -132,13 +137,14 @@ public class AdminMessageController {
     public ResponseEntity<AdminMessageDTO> flagMessage(
             @PathVariable Long messageId,
             @Valid @RequestBody FlagMessageRequest request,
-            @RequestHeader("Authorization") String token) {
+            @RequestHeader("Authorization") String token,
+            HttpServletRequest httpRequest) {
 
         Long adminId = Long.valueOf(jwtUtils.extractUserId(token.substring(7)));
 
         log.info("Admin {} flagging message: {} - Type: {}", adminId, messageId, request.getFlagType());
 
-        AdminMessageDTO response = adminMessageManagementService.flagMessage(messageId, request, adminId);
+        AdminMessageDTO response = adminMessageManagementService.flagMessage(messageId, request, adminId, httpRequest);
 
         return ResponseEntity.ok(response);
     }
@@ -150,13 +156,14 @@ public class AdminMessageController {
     @PostMapping("/{messageId}/unflag")
     public ResponseEntity<AdminMessageDTO> unflagMessage(
             @PathVariable Long messageId,
-            @RequestHeader("Authorization") String token) {
+            @RequestHeader("Authorization") String token,
+            HttpServletRequest httpRequest) {
 
         Long adminId = Long.valueOf(jwtUtils.extractUserId(token.substring(7)));
 
         log.info("Admin {} unflagging message: {}", adminId, messageId);
 
-        AdminMessageDTO response = adminMessageManagementService.unflagMessage(messageId, adminId);
+        AdminMessageDTO response = adminMessageManagementService.unflagMessage(messageId, adminId, httpRequest);
 
         return ResponseEntity.ok(response);
     }

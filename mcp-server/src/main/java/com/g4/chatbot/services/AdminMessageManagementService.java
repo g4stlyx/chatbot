@@ -13,6 +13,7 @@ import com.g4.chatbot.repos.AdminRepository;
 import com.g4.chatbot.repos.ChatSessionRepository;
 import com.g4.chatbot.repos.MessageRepository;
 import com.g4.chatbot.repos.UserRepository;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -23,7 +24,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Service for admin message management operations
@@ -44,6 +47,9 @@ public class AdminMessageManagementService {
     @Autowired
     private AdminRepository adminRepository;
 
+    @Autowired
+    private AdminActivityLogger adminActivityLogger;
+
     /**
      * Get all messages with optional filtering
      * Level 2 admins (moderators) and above can access
@@ -57,7 +63,8 @@ public class AdminMessageManagementService {
             int size,
             String sortBy,
             String sortDirection,
-            Long adminId) {
+            Long adminId,
+            HttpServletRequest httpRequest) {
 
         log.info("Admin {} fetching all messages - page: {}, size: {}", adminId, page, size);
 
@@ -87,6 +94,28 @@ public class AdminMessageManagementService {
             messagePage = messageRepository.findAll(pageable);
         }
 
+        // Log activity
+        Map<String, Object> details = new HashMap<>();
+        details.put("page", page);
+        details.put("size", size);
+        details.put("sortBy", sortBy);
+        details.put("sortDirection", sortDirection);
+        if (sessionId != null) details.put("sessionId", sessionId);
+        if (userId != null) details.put("userId", userId);
+        if (role != null) details.put("role", role);
+        if (isFlagged != null) details.put("isFlagged", isFlagged);
+        details.put("resultCount", messagePage.getContent().size());
+        details.put("totalElements", messagePage.getTotalElements());
+        
+        adminActivityLogger.logActivity(
+                adminId,
+                "READ",
+                "Message",
+                "list",
+                details,
+                httpRequest
+        );
+
         return AdminMessageListResponse.builder()
                 .messages(messagePage.getContent().stream()
                         .map(this::convertToAdminDTO)
@@ -101,11 +130,27 @@ public class AdminMessageManagementService {
     /**
      * Get message by ID with full context
      */
-    public AdminMessageDTO getMessageById(Long messageId, Long adminId) {
+    public AdminMessageDTO getMessageById(Long messageId, Long adminId, HttpServletRequest httpRequest) {
         log.info("Admin {} fetching message: {}", adminId, messageId);
 
         Message message = messageRepository.findById(messageId)
                 .orElseThrow(() -> new ResourceNotFoundException("Message not found with ID: " + messageId));
+
+        // Log activity
+        Map<String, Object> details = new HashMap<>();
+        details.put("messageId", messageId);
+        details.put("sessionId", message.getSessionId());
+        details.put("role", message.getRole().toString());
+        details.put("isFlagged", message.getIsFlagged());
+        
+        adminActivityLogger.logActivity(
+                adminId,
+                "READ",
+                "Message",
+                messageId.toString(),
+                details,
+                httpRequest
+        );
 
         return convertToAdminDTO(message);
     }
@@ -119,7 +164,8 @@ public class AdminMessageManagementService {
             int size,
             String sortBy,
             String sortDirection,
-            Long adminId) {
+            Long adminId,
+            HttpServletRequest httpRequest) {
 
         log.info("Admin {} fetching messages for session: {}", adminId, sessionId);
 
@@ -133,6 +179,25 @@ public class AdminMessageManagementService {
         Pageable pageable = PageRequest.of(page, size, sort);
 
         Page<Message> messagePage = messageRepository.findBySessionId(sessionId, pageable);
+
+        // Log activity
+        Map<String, Object> details = new HashMap<>();
+        details.put("sessionId", sessionId);
+        details.put("page", page);
+        details.put("size", size);
+        details.put("sortBy", sortBy);
+        details.put("sortDirection", sortDirection);
+        details.put("resultCount", messagePage.getContent().size());
+        details.put("totalElements", messagePage.getTotalElements());
+        
+        adminActivityLogger.logActivity(
+                adminId,
+                "READ",
+                "Message",
+                "session:" + sessionId,
+                details,
+                httpRequest
+        );
 
         return AdminMessageListResponse.builder()
                 .messages(messagePage.getContent().stream()
@@ -151,7 +216,7 @@ public class AdminMessageManagementService {
      * If deleting a USER message, also deletes the corresponding ASSISTANT response
      */
     @Transactional
-    public void deleteMessage(Long messageId, Long adminId) {
+    public void deleteMessage(Long messageId, Long adminId, HttpServletRequest request) {
         Admin admin = adminRepository.findById(adminId)
                 .orElseThrow(() -> new UnauthorizedException("Admin not found"));
 
@@ -164,6 +229,15 @@ public class AdminMessageManagementService {
 
         log.info("Admin {} (Level {}) deleting message: {}", adminId, admin.getLevel(), messageId);
 
+        // Collect details for logging
+        Map<String, Object> details = new HashMap<>();
+        details.put("role", message.getRole().toString());
+        details.put("content_preview", message.getContent() != null && message.getContent().length() > 50 
+            ? message.getContent().substring(0, 50) + "..." 
+            : message.getContent());
+        details.put("sessionId", message.getSessionId());
+        details.put("tokenCount", message.getTokenCount());
+        
         // Update session message count and token usage
         ChatSession session = chatSessionRepository.findById(message.getSessionId()).orElse(null);
         if (session != null) {
@@ -186,6 +260,7 @@ public class AdminMessageManagementService {
                         tokensDeleted += (msg.getTokenCount() != null ? msg.getTokenCount() : 0);
                         messagesDeleted++;
                         messageRepository.delete(msg);
+                        details.put("also_deleted_assistant_message", msg.getId());
                         break;
                     }
                 }
@@ -195,9 +270,15 @@ public class AdminMessageManagementService {
             session.setTokenUsage(Math.max(0, session.getTokenUsage() - tokensDeleted));
             session.setUpdatedAt(LocalDateTime.now());
             chatSessionRepository.save(session);
+            
+            details.put("messages_deleted_count", messagesDeleted);
+            details.put("tokens_deleted", tokensDeleted);
         }
 
         messageRepository.delete(message);
+        
+        // Log the activity
+        adminActivityLogger.logActivity(adminId, "DELETE", "Message", messageId.toString(), details, request);
 
         log.info("Message {} successfully deleted by admin {}", messageId, adminId);
     }
@@ -207,7 +288,7 @@ public class AdminMessageManagementService {
      * Level 2 admins (moderators) and above can flag
      */
     @Transactional
-    public AdminMessageDTO flagMessage(Long messageId, FlagMessageRequest request, Long adminId) {
+    public AdminMessageDTO flagMessage(Long messageId, FlagMessageRequest request, Long adminId, HttpServletRequest httpRequest) {
         log.info("Admin {} flagging message: {} - Type: {}", adminId, messageId, request.getFlagType());
 
         Message message = messageRepository.findById(messageId)
@@ -219,6 +300,14 @@ public class AdminMessageManagementService {
         message.setFlaggedAt(LocalDateTime.now());
 
         Message updated = messageRepository.save(message);
+        
+        // Log the activity
+        Map<String, Object> details = new HashMap<>();
+        details.put("flagType", request.getFlagType());
+        details.put("reason", request.getReason());
+        details.put("sessionId", message.getSessionId());
+        details.put("role", message.getRole().toString());
+        adminActivityLogger.logActivity(adminId, "FLAG", "Message", messageId.toString(), details, httpRequest);
 
         log.info("Message {} flagged by admin {} - Reason: {}", messageId, adminId, request.getReason());
 
@@ -230,7 +319,7 @@ public class AdminMessageManagementService {
      * Level 2 admins and above can unflag
      */
     @Transactional
-    public AdminMessageDTO unflagMessage(Long messageId, Long adminId) {
+    public AdminMessageDTO unflagMessage(Long messageId, Long adminId, HttpServletRequest httpRequest) {
         log.info("Admin {} unflagging message: {}", adminId, messageId);
 
         Message message = messageRepository.findById(messageId)
@@ -242,6 +331,12 @@ public class AdminMessageManagementService {
         message.setFlaggedAt(null);
 
         Message updated = messageRepository.save(message);
+        
+        // Log the activity
+        Map<String, Object> details = new HashMap<>();
+        details.put("sessionId", message.getSessionId());
+        details.put("role", message.getRole().toString());
+        adminActivityLogger.logActivity(adminId, "UNFLAG", "Message", messageId.toString(), details, httpRequest);
 
         log.info("Message {} unflagged by admin {}", messageId, adminId);
 

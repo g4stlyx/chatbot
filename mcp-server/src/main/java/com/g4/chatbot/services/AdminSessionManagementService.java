@@ -12,6 +12,7 @@ import com.g4.chatbot.repos.AdminRepository;
 import com.g4.chatbot.repos.ChatSessionRepository;
 import com.g4.chatbot.repos.MessageRepository;
 import com.g4.chatbot.repos.UserRepository;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -22,6 +23,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Service for admin chat session management operations
@@ -41,6 +45,9 @@ public class AdminSessionManagementService {
 
     @Autowired
     private MessageRepository messageRepository;
+    
+    @Autowired
+    private AdminActivityLogger activityLogger;
 
     /**
      * Get all chat sessions with optional filtering
@@ -55,7 +62,8 @@ public class AdminSessionManagementService {
             int size,
             String sortBy,
             String sortDirection,
-            Long adminId) {
+            Long adminId,
+            HttpServletRequest httpRequest) {
 
         log.info("Admin {} fetching all sessions - page: {}, size: {}", adminId, page, size);
 
@@ -90,11 +98,27 @@ public class AdminSessionManagementService {
         } else {
             sessionPage = chatSessionRepository.findAll(pageable);
         }
+        
+        List<AdminChatSessionDTO> sessions = sessionPage.getContent().stream()
+                .map(this::convertToAdminDTO)
+                .toList();
+        
+        // Log the READ activity
+        Map<String, Object> details = new HashMap<>();
+        details.put("page", page);
+        details.put("size", size);
+        details.put("sortBy", sortBy);
+        details.put("sortDirection", sortDirection);
+        if (userId != null) details.put("filterUserId", userId);
+        if (status != null) details.put("filterStatus", status);
+        if (isFlagged != null) details.put("filterIsFlagged", isFlagged);
+        if (isPublic != null) details.put("filterIsPublic", isPublic);
+        details.put("resultCount", sessions.size());
+        details.put("totalElements", sessionPage.getTotalElements());
+        activityLogger.logActivity(adminId, "READ", "ChatSession", "list", details, httpRequest);
 
         return AdminSessionListResponse.builder()
-                .sessions(sessionPage.getContent().stream()
-                        .map(this::convertToAdminDTO)
-                        .toList())
+                .sessions(sessions)
                 .currentPage(sessionPage.getNumber())
                 .totalPages(sessionPage.getTotalPages())
                 .totalElements(sessionPage.getTotalElements())
@@ -105,12 +129,20 @@ public class AdminSessionManagementService {
     /**
      * Get session by ID with full details
      */
-    public AdminChatSessionDTO getSessionById(String sessionId, Long adminId) {
+    public AdminChatSessionDTO getSessionById(String sessionId, Long adminId, HttpServletRequest httpRequest) {
         log.info("Admin {} fetching session: {}", adminId, sessionId);
 
         ChatSession session = chatSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Session not found with ID: " + sessionId));
 
+        // Log the READ activity
+        Map<String, Object> details = new HashMap<>();
+        details.put("userId", session.getUserId());
+        details.put("title", session.getTitle());
+        details.put("messageCount", session.getMessageCount());
+        details.put("status", session.getStatus().toString());
+        activityLogger.logActivity(adminId, "READ", "ChatSession", sessionId, details, httpRequest);
+        
         return convertToAdminDTO(session);
     }
 
@@ -119,7 +151,7 @@ public class AdminSessionManagementService {
      * Only Level 0-1 admins can perform this action
      */
     @Transactional
-    public void deleteSession(String sessionId, Long adminId) {
+    public void deleteSession(String sessionId, Long adminId, HttpServletRequest httpRequest) {
         Admin admin = adminRepository.findById(adminId)
                 .orElseThrow(() -> new UnauthorizedException("Admin not found"));
 
@@ -139,6 +171,13 @@ public class AdminSessionManagementService {
         chatSessionRepository.delete(session);
 
         log.info("Session {} successfully deleted by admin {}", sessionId, adminId);
+        
+        // Log activity
+        Map<String, Object> details = new HashMap<>();
+        details.put("userId", session.getUserId());
+        details.put("title", session.getTitle());
+        details.put("messageCount", session.getMessageCount());
+        activityLogger.logDelete(adminId, "session", sessionId, httpRequest);
     }
 
     /**
@@ -146,7 +185,7 @@ public class AdminSessionManagementService {
      * Level 2 admins (moderators) and above can perform this
      */
     @Transactional
-    public AdminChatSessionDTO archiveSession(String sessionId, Long adminId) {
+    public AdminChatSessionDTO archiveSession(String sessionId, Long adminId, HttpServletRequest httpRequest) {
         log.info("Admin {} archiving session: {}", adminId, sessionId);
 
         ChatSession session = chatSessionRepository.findById(sessionId)
@@ -158,6 +197,13 @@ public class AdminSessionManagementService {
         ChatSession updated = chatSessionRepository.save(session);
 
         log.info("Session {} archived by admin {}", sessionId, adminId);
+        
+        // Log activity
+        Map<String, Object> details = new HashMap<>();
+        details.put("action", "archived");
+        details.put("userId", session.getUserId());
+        details.put("title", session.getTitle());
+        activityLogger.logActivity(adminId, "ARCHIVE", "session", sessionId, details, httpRequest);
 
         return convertToAdminDTO(updated);
     }
@@ -167,7 +213,7 @@ public class AdminSessionManagementService {
      * Level 2 admins (moderators) and above can flag
      */
     @Transactional
-    public AdminChatSessionDTO flagSession(String sessionId, FlagSessionRequest request, Long adminId) {
+    public AdminChatSessionDTO flagSession(String sessionId, FlagSessionRequest request, Long adminId, HttpServletRequest httpRequest) {
         log.info("Admin {} flagging session: {} - Type: {}", adminId, sessionId, request.getFlagType());
 
         ChatSession session = chatSessionRepository.findById(sessionId)
@@ -182,6 +228,14 @@ public class AdminSessionManagementService {
         ChatSession updated = chatSessionRepository.save(session);
 
         log.info("Session {} flagged by admin {} - Reason: {}", sessionId, adminId, request.getReason());
+        
+        // Log activity
+        Map<String, Object> details = new HashMap<>();
+        details.put("action", "flagged");
+        details.put("flagType", request.getFlagType());
+        details.put("reason", request.getReason());
+        details.put("userId", session.getUserId());
+        activityLogger.logActivity(adminId, "FLAG", "session", sessionId, details, httpRequest);
 
         return convertToAdminDTO(updated);
     }
@@ -191,7 +245,7 @@ public class AdminSessionManagementService {
      * Level 2 admins and above can unflag
      */
     @Transactional
-    public AdminChatSessionDTO unflagSession(String sessionId, Long adminId) {
+    public AdminChatSessionDTO unflagSession(String sessionId, Long adminId, HttpServletRequest httpRequest) {
         log.info("Admin {} unflagging session: {}", adminId, sessionId);
 
         ChatSession session = chatSessionRepository.findById(sessionId)
@@ -206,6 +260,12 @@ public class AdminSessionManagementService {
         ChatSession updated = chatSessionRepository.save(session);
 
         log.info("Session {} unflagged by admin {}", sessionId, adminId);
+        
+        // Log activity
+        Map<String, Object> details = new HashMap<>();
+        details.put("action", "unflagged");
+        details.put("userId", session.getUserId());
+        activityLogger.logActivity(adminId, "UNFLAG", "session", sessionId, details, httpRequest);
 
         return convertToAdminDTO(updated);
     }

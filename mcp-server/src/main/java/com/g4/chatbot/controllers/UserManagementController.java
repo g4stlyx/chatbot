@@ -2,6 +2,7 @@ package com.g4.chatbot.controllers;
 
 import com.g4.chatbot.dto.admin.*;
 import com.g4.chatbot.services.UserManagementService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,12 +32,13 @@ public class UserManagementController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDirection,
-            Authentication authentication) {
+            Authentication authentication,
+            HttpServletRequest httpRequest) {
         
         Long adminId = (Long) authentication.getDetails();
         log.info("Admin {} fetching all users - page: {}, size: {}", adminId, page, size);
         
-        UserListResponse response = userManagementService.getAllUsers(page, size, sortBy, sortDirection);
+        UserListResponse response = userManagementService.getAllUsers(page, size, sortBy, sortDirection, adminId, httpRequest);
         return ResponseEntity.ok(response);
     }
     
@@ -65,12 +67,13 @@ public class UserManagementController {
     @GetMapping("/{userId}")
     public ResponseEntity<UserManagementDTO> getUserById(
             @PathVariable Long userId,
-            Authentication authentication) {
+            Authentication authentication,
+            HttpServletRequest httpRequest) {
         
         Long adminId = (Long) authentication.getDetails();
         log.info("Admin {} fetching user {}", adminId, userId);
         
-        UserManagementDTO user = userManagementService.getUserById(userId);
+        UserManagementDTO user = userManagementService.getUserById(userId, adminId, httpRequest);
         return ResponseEntity.ok(user);
     }
     
@@ -81,12 +84,13 @@ public class UserManagementController {
     @PostMapping
     public ResponseEntity<UserManagementDTO> createUser(
             @Valid @RequestBody CreateUserRequest request,
-            Authentication authentication) {
+            Authentication authentication,
+            HttpServletRequest httpRequest) {
         
         Long adminId = (Long) authentication.getDetails();
         log.info("Admin {} creating new user: {}", adminId, request.getUsername());
         
-        UserManagementDTO user = userManagementService.createUser(request);
+        UserManagementDTO user = userManagementService.createUser(adminId, request, httpRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(user);
     }
     
@@ -98,12 +102,13 @@ public class UserManagementController {
     public ResponseEntity<UserManagementDTO> updateUser(
             @PathVariable Long userId,
             @Valid @RequestBody UpdateUserRequest request,
-            Authentication authentication) {
+            Authentication authentication,
+            HttpServletRequest httpRequest) {
         
         Long adminId = (Long) authentication.getDetails();
         log.info("Admin {} updating user {}", adminId, userId);
         
-        UserManagementDTO user = userManagementService.updateUser(userId, request);
+        UserManagementDTO user = userManagementService.updateUser(adminId, userId, request, httpRequest);
         return ResponseEntity.ok(user);
     }
     
@@ -114,12 +119,13 @@ public class UserManagementController {
     @DeleteMapping("/{userId}")
     public ResponseEntity<Map<String, Object>> deleteUser(
             @PathVariable Long userId,
-            Authentication authentication) {
+            Authentication authentication,
+            HttpServletRequest httpRequest) {
         
         Long adminId = (Long) authentication.getDetails();
         log.info("Admin {} deleting user {}", adminId, userId);
         
-        userManagementService.deleteUser(userId);
+        userManagementService.deleteUser(adminId, userId, httpRequest);
         
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
@@ -135,12 +141,13 @@ public class UserManagementController {
     @PostMapping("/{userId}/activate")
     public ResponseEntity<UserManagementDTO> activateUser(
             @PathVariable Long userId,
-            Authentication authentication) {
+            Authentication authentication,
+            HttpServletRequest httpRequest) {
         
         Long adminId = (Long) authentication.getDetails();
         log.info("Admin {} activating user {}", adminId, userId);
         
-        UserManagementDTO user = userManagementService.activateUser(userId);
+        UserManagementDTO user = userManagementService.activateUser(adminId, userId, httpRequest);
         return ResponseEntity.ok(user);
     }
     
@@ -151,12 +158,13 @@ public class UserManagementController {
     @PostMapping("/{userId}/deactivate")
     public ResponseEntity<UserManagementDTO> deactivateUser(
             @PathVariable Long userId,
-            Authentication authentication) {
+            Authentication authentication,
+            HttpServletRequest httpRequest) {
         
         Long adminId = (Long) authentication.getDetails();
         log.info("Admin {} deactivating user {}", adminId, userId);
         
-        UserManagementDTO user = userManagementService.deactivateUser(userId);
+        UserManagementDTO user = userManagementService.deactivateUser(adminId, userId, httpRequest);
         return ResponseEntity.ok(user);
     }
     
@@ -168,12 +176,13 @@ public class UserManagementController {
     public ResponseEntity<Map<String, Object>> resetUserPassword(
             @PathVariable Long userId,
             @Valid @RequestBody ResetUserPasswordRequest request,
-            Authentication authentication) {
+            Authentication authentication,
+            HttpServletRequest httpRequest) {
         
         Long adminId = (Long) authentication.getDetails();
         log.info("Admin {} resetting password for user {}", adminId, userId);
         
-        userManagementService.resetUserPassword(userId, request);
+        userManagementService.resetUserPassword(adminId, userId, request, httpRequest);
         
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
@@ -189,12 +198,13 @@ public class UserManagementController {
     @PostMapping("/{userId}/unlock")
     public ResponseEntity<UserManagementDTO> unlockUser(
             @PathVariable Long userId,
-            Authentication authentication) {
+            Authentication authentication,
+            HttpServletRequest httpRequest) {
         
         Long adminId = (Long) authentication.getDetails();
         log.info("Admin {} unlocking user {}", adminId, userId);
         
-        UserManagementDTO user = userManagementService.unlockUser(userId);
+        UserManagementDTO user = userManagementService.unlockUser(adminId, userId, httpRequest);
         return ResponseEntity.ok(user);
     }
 }

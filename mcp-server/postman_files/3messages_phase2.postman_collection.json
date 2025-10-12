@@ -67,7 +67,7 @@
 									"// Extract the first message ID from response if available",
 									"var jsonData = pm.response.json();",
 									"if (jsonData.messageId) {",
-									"    pm.environment.set(\"userMessageId\", jsonData.messageId);",
+									"    pm.environment.set(\"message_id\", jsonData.userMessageId);",
 									"}"
 								],
 								"type": "text/javascript",

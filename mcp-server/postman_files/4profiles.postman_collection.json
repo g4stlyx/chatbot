@@ -1,0 +1,391 @@
+{
+	"info": {
+		"_postman_id": "bbc42cb6-3eba-495d-80e0-91dd99a12740",
+		"name": "4. Profile Management",
+		"description": "API endpoints for user and admin profile management",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "27783651",
+		"_collection_link": "https://kssapi-8302.postman.co/workspace/chatbot-mcp-server~543af950-ce8d-46bb-9dec-7a8956624795/collection/27783651-bbc42cb6-3eba-495d-80e0-91dd99a12740?action=share&source=collection_link&creator=27783651"
+	},
+	"item": [
+		{
+			"name": "User Profile",
+			"item": [
+				{
+					"name": "Get User Profile",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/user/profile",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"user",
+								"profile"
+							]
+						},
+						"description": "Retrieve the current authenticated user's profile information"
+					},
+					"response": []
+				},
+				{
+					"name": "Update User Profile",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  //\"email\": \"newemail@example.com\",\n  //\"firstName\": \"John\",\n  //\"lastName\": \"Doe\",\n  \"profilePicture\": \"https://pokemongostop.org/images/pokemon-optimized/gastly.png\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/user/profile",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"user",
+								"profile"
+							]
+						},
+						"description": "Update the current authenticated user's profile information. All fields are optional."
+					},
+					"response": []
+				},
+				{
+					"name": "Change User Password",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"currentPassword\": \"12345678\",\n  \"newPassword\": \"123456789\",\n  \"confirmPassword\": \"123456789\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/user/profile/change-password",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"user",
+								"profile",
+								"change-password"
+							]
+						},
+						"description": "Change the current authenticated user's password"
+					},
+					"response": []
+				},
+				{
+					"name": "Deactivate User Account",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/user/profile/deactivate",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"user",
+								"profile",
+								"deactivate"
+							]
+						},
+						"description": "Deactivate the current authenticated user's account"
+					},
+					"response": []
+				},
+				{
+					"name": "Reactivate User Account",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/user/profile/reactivate",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"user",
+								"profile",
+								"reactivate"
+							]
+						},
+						"description": "Reactivate the current authenticated user's account"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Admin Profile",
+			"item": [
+				{
+					"name": "Get Current Admin Profile",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/profile",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"admin",
+								"profile"
+							]
+						},
+						"description": "Retrieve the current authenticated admin's profile information"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Admin Profile by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/profile/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"admin",
+								"profile",
+								"1"
+							]
+						},
+						"description": "Retrieve any admin's profile information by their ID (for super admins and higher-level admins)"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Admin Profile",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  //\"email\": \"admin@example.com\",\n  //\"firstName\": \"Admin\",\n  \"lastName\": \"the lord\",\n  \"profilePicture\": \"https://db.pokemongohub.net/_next/image?url=%2Fimages%2Fofficial%2Ffull%2F092.webp&w=640&q=75\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/profile",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"admin",
+								"profile"
+							]
+						},
+						"description": "Update the current authenticated admin's profile information. All fields are optional."
+					},
+					"response": []
+				},
+				{
+					"name": "Change Admin Password",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"currentPassword\": \"12345678\",\n  \"newPassword\": \"123456789\",\n  \"confirmPassword\": \"123456789\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/profile/change-password",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"admin",
+								"profile",
+								"change-password"
+							]
+						},
+						"description": "Change the current authenticated admin's password"
+					},
+					"response": []
+				},
+				{
+					"name": "Deactivate Admin Account",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/profile/1/deactivate",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"admin",
+								"profile",
+								"1",
+								"deactivate"
+							]
+						},
+						"description": "Deactivate an admin account. Only super admins or higher-level admins can deactivate other admin accounts."
+					},
+					"response": []
+				},
+				{
+					"name": "Reactivate Admin Account",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/profile/1/reactivate",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"admin",
+								"profile",
+								"1",
+								"reactivate"
+							]
+						},
+						"description": "Reactivate an admin account. Only super admins or higher-level admins can reactivate other admin accounts."
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "jwt_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "jwt_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "user_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "admin_id",
+			"value": "",
+			"type": "string"
+		}
+	]
+}

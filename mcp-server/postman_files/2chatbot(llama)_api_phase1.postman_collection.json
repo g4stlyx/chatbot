@@ -1,9 +1,11 @@
 {
 	"info": {
-		"_postman_id": "chat-api-collection",
-		"name": "Chat API - MCP Server (Phase 1)",
+		"_postman_id": "6995ed8e-98c7-4b10-b439-40328f169c01",
+		"name": "2. Chatbot (llama) api (Phase 1)",
 		"description": "Complete collection for testing Chat endpoints with Ollama/Llama3 integration",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "27783651",
+		"_collection_link": "https://kssapi-8302.postman.co/workspace/chatbot-mcp-server~543af950-ce8d-46bb-9dec-7a8956624795/collection/27783651-6995ed8e-98c7-4b10-b439-40328f169c01?action=share&source=collection_link&creator=27783651"
 	},
 	"item": [
 		{
@@ -30,7 +32,9 @@
 									"    }",
 									"}"
 								],
-								"type": "text/javascript"
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
 							}
 						}
 					],
@@ -48,7 +52,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"message\": \"Hello! Can you explain what machine learning is in simple terms?\",\n  \"model\": \"llama3\",\n  \"sessionTitle\": \"ML Discussion\"\n}"
+							"raw": "{\n  \"message\": \"Hello! Can you explain what machine learning is in simple terms??\",\n  \"model\": \"llama3\",\n  \"sessionTitle\": \"ML Discussion\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/api/v1/chat",

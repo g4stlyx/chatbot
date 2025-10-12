@@ -5,6 +5,7 @@ import com.g4.chatbot.dto.admin.session.AdminSessionListResponse;
 import com.g4.chatbot.dto.admin.session.FlagSessionRequest;
 import com.g4.chatbot.security.JwtUtils;
 import com.g4.chatbot.services.AdminSessionManagementService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,7 +46,8 @@ public class AdminSessionController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDirection,
-            @RequestHeader("Authorization") String token) {
+            @RequestHeader("Authorization") String token,
+            HttpServletRequest httpRequest) {
 
         Long adminId = Long.valueOf(jwtUtils.extractUserId(token.substring(7)));
 
@@ -53,7 +55,7 @@ public class AdminSessionController {
                 adminId, page, size, userId, status, isFlagged, isPublic);
 
         AdminSessionListResponse response = adminSessionManagementService.getAllSessions(
-                userId, status, isFlagged, isPublic, page, size, sortBy, sortDirection, adminId);
+                userId, status, isFlagged, isPublic, page, size, sortBy, sortDirection, adminId, httpRequest);
 
         return ResponseEntity.ok(response);
     }
@@ -65,13 +67,14 @@ public class AdminSessionController {
     @GetMapping("/{sessionId}")
     public ResponseEntity<AdminChatSessionDTO> getSessionById(
             @PathVariable String sessionId,
-            @RequestHeader("Authorization") String token) {
+            @RequestHeader("Authorization") String token,
+            HttpServletRequest httpRequest) {
 
         Long adminId = Long.valueOf(jwtUtils.extractUserId(token.substring(7)));
 
         log.info("Admin {} requesting session: {}", adminId, sessionId);
 
-        AdminChatSessionDTO response = adminSessionManagementService.getSessionById(sessionId, adminId);
+        AdminChatSessionDTO response = adminSessionManagementService.getSessionById(sessionId, adminId, httpRequest);
 
         return ResponseEntity.ok(response);
     }
@@ -85,13 +88,14 @@ public class AdminSessionController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> deleteSession(
             @PathVariable String sessionId,
-            @RequestHeader("Authorization") String token) {
+            @RequestHeader("Authorization") String token,
+            HttpServletRequest httpRequest) {
 
         Long adminId = Long.valueOf(jwtUtils.extractUserId(token.substring(7)));
 
         log.info("Admin {} attempting to delete session: {}", adminId, sessionId);
 
-        adminSessionManagementService.deleteSession(sessionId, adminId);
+        adminSessionManagementService.deleteSession(sessionId, adminId, httpRequest);
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
@@ -108,13 +112,14 @@ public class AdminSessionController {
     @PostMapping("/{sessionId}/archive")
     public ResponseEntity<AdminChatSessionDTO> archiveSession(
             @PathVariable String sessionId,
-            @RequestHeader("Authorization") String token) {
+            @RequestHeader("Authorization") String token,
+            HttpServletRequest httpRequest) {
 
         Long adminId = Long.valueOf(jwtUtils.extractUserId(token.substring(7)));
 
         log.info("Admin {} archiving session: {}", adminId, sessionId);
 
-        AdminChatSessionDTO response = adminSessionManagementService.archiveSession(sessionId, adminId);
+        AdminChatSessionDTO response = adminSessionManagementService.archiveSession(sessionId, adminId, httpRequest);
 
         return ResponseEntity.ok(response);
     }
@@ -127,13 +132,14 @@ public class AdminSessionController {
     public ResponseEntity<AdminChatSessionDTO> flagSession(
             @PathVariable String sessionId,
             @Valid @RequestBody FlagSessionRequest request,
-            @RequestHeader("Authorization") String token) {
+            @RequestHeader("Authorization") String token,
+            HttpServletRequest httpRequest) {
 
         Long adminId = Long.valueOf(jwtUtils.extractUserId(token.substring(7)));
 
         log.info("Admin {} flagging session: {} - Type: {}", adminId, sessionId, request.getFlagType());
 
-        AdminChatSessionDTO response = adminSessionManagementService.flagSession(sessionId, request, adminId);
+        AdminChatSessionDTO response = adminSessionManagementService.flagSession(sessionId, request, adminId, httpRequest);
 
         return ResponseEntity.ok(response);
     }
@@ -145,13 +151,14 @@ public class AdminSessionController {
     @PostMapping("/{sessionId}/unflag")
     public ResponseEntity<AdminChatSessionDTO> unflagSession(
             @PathVariable String sessionId,
-            @RequestHeader("Authorization") String token) {
+            @RequestHeader("Authorization") String token,
+            HttpServletRequest httpRequest) {
 
         Long adminId = Long.valueOf(jwtUtils.extractUserId(token.substring(7)));
 
         log.info("Admin {} unflagging session: {}", adminId, sessionId);
 
-        AdminChatSessionDTO response = adminSessionManagementService.unflagSession(sessionId, adminId);
+        AdminChatSessionDTO response = adminSessionManagementService.unflagSession(sessionId, adminId, httpRequest);
 
         return ResponseEntity.ok(response);
     }

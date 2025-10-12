@@ -7,6 +7,7 @@ import com.g4.chatbot.models.Admin;
 import com.g4.chatbot.repos.AdminRepository;
 import com.g4.chatbot.security.JwtUtils;
 import com.g4.chatbot.services.AdminTokenManagementService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -38,7 +39,8 @@ public class AdminTokenManagementController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "createdDate") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDirection
+            @RequestParam(defaultValue = "desc") String sortDirection,
+            HttpServletRequest httpRequest
     ) {
         try {
             // Extract admin ID and verify Level 0
@@ -54,7 +56,7 @@ public class AdminTokenManagementController {
             }
             
             TokenListResponse<PasswordResetTokenDTO> response = tokenManagementService.getAllPasswordResetTokens(
-                    userType, includeExpired, page, size, sortBy, sortDirection
+                    userType, includeExpired, page, size, sortBy, sortDirection, currentAdminId, httpRequest
             );
             
             return ResponseEntity.ok(Map.of(
@@ -79,7 +81,8 @@ public class AdminTokenManagementController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getPasswordResetTokenById(
             @RequestHeader("Authorization") String token,
-            @PathVariable Long tokenId
+            @PathVariable Long tokenId,
+            HttpServletRequest httpRequest
     ) {
         try {
             // Extract admin ID and verify Level 0
@@ -94,7 +97,7 @@ public class AdminTokenManagementController {
                 ));
             }
             
-            PasswordResetTokenDTO tokenDTO = tokenManagementService.getPasswordResetTokenById(tokenId);
+            PasswordResetTokenDTO tokenDTO = tokenManagementService.getPasswordResetTokenById(tokenId, currentAdminId, httpRequest);
             
             return ResponseEntity.ok(Map.of(
                     "success", true,
@@ -124,7 +127,8 @@ public class AdminTokenManagementController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> deletePasswordResetToken(
             @RequestHeader("Authorization") String token,
-            @PathVariable Long tokenId
+            @PathVariable Long tokenId,
+            HttpServletRequest httpRequest
     ) {
         try {
             // Extract admin ID and verify Level 0
@@ -139,7 +143,7 @@ public class AdminTokenManagementController {
                 ));
             }
             
-            tokenManagementService.deletePasswordResetToken(tokenId);
+            tokenManagementService.deletePasswordResetToken(tokenId, currentAdminId, httpRequest);
             
             return ResponseEntity.ok(Map.of(
                     "success", true,
@@ -174,7 +178,8 @@ public class AdminTokenManagementController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "createdDate") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDirection
+            @RequestParam(defaultValue = "desc") String sortDirection,
+            HttpServletRequest httpRequest
     ) {
         try {
             // Extract admin ID and verify Level 0
@@ -190,7 +195,7 @@ public class AdminTokenManagementController {
             }
             
             TokenListResponse<VerificationTokenDTO> response = tokenManagementService.getAllVerificationTokens(
-                    userType, includeExpired, page, size, sortBy, sortDirection
+                    userType, includeExpired, page, size, sortBy, sortDirection, currentAdminId, httpRequest
             );
             
             return ResponseEntity.ok(Map.of(
@@ -215,7 +220,8 @@ public class AdminTokenManagementController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getVerificationTokenById(
             @RequestHeader("Authorization") String token,
-            @PathVariable Long tokenId
+            @PathVariable Long tokenId,
+            HttpServletRequest httpRequest
     ) {
         try {
             // Extract admin ID and verify Level 0
@@ -230,7 +236,7 @@ public class AdminTokenManagementController {
                 ));
             }
             
-            VerificationTokenDTO tokenDTO = tokenManagementService.getVerificationTokenById(tokenId);
+            VerificationTokenDTO tokenDTO = tokenManagementService.getVerificationTokenById(tokenId, currentAdminId, httpRequest);
             
             return ResponseEntity.ok(Map.of(
                     "success", true,
@@ -260,7 +266,8 @@ public class AdminTokenManagementController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> deleteVerificationToken(
             @RequestHeader("Authorization") String token,
-            @PathVariable Long tokenId
+            @PathVariable Long tokenId,
+            HttpServletRequest httpRequest
     ) {
         try {
             // Extract admin ID and verify Level 0
@@ -275,7 +282,7 @@ public class AdminTokenManagementController {
                 ));
             }
             
-            tokenManagementService.deleteVerificationToken(tokenId);
+            tokenManagementService.deleteVerificationToken(tokenId, currentAdminId, httpRequest);
             
             return ResponseEntity.ok(Map.of(
                     "success", true,
