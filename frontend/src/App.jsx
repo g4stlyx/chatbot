@@ -22,7 +22,10 @@ function App() {
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
-            <Route path="/verification-pending" element={<VerificationPendingPage />} />
+            <Route
+              path="/verification-pending"
+              element={<VerificationPendingPage />}
+            />
             <Route path="/verify" element={<EmailVerifyPage />} />
             <Route
               path="/chat"

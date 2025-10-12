@@ -16,11 +16,6 @@ const RegisterPage = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Redirect if already authenticated
-  if (isAuthenticated) {
-    navigate("/chat");
-  }
-
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -57,8 +52,8 @@ const RegisterPage = () => {
 
     if (result.success) {
       // Navigate to verification pending page instead of chat
-      navigate("/verification-pending", { 
-        state: { email: formData.email } 
+      navigate("/verification-pending", {
+        state: { email: formData.email },
       });
     } else {
       setError(result.error);
