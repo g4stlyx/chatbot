@@ -32,7 +32,11 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       // Only redirect if we're not already on the login/register pages
       const currentPath = window.location.pathname;
-      if (currentPath !== '/login' && currentPath !== '/register' && currentPath !== '/verify') {
+      if (
+        currentPath !== "/login" &&
+        currentPath !== "/register" &&
+        currentPath !== "/verify"
+      ) {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         window.location.href = "/login";
