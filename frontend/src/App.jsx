@@ -10,6 +10,9 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import VerificationPendingPage from "./pages/VerificationPendingPage";
 import EmailVerifyPage from "./pages/EmailVerifyPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
+import ProfilePage from "./pages/ProfilePage";
 import ChatPage from "./pages/ChatPage";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import "./App.css";
@@ -27,6 +30,16 @@ function App() {
               element={<VerificationPendingPage />}
             />
             <Route path="/verify" element={<EmailVerifyPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <ProfilePage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/chat"
               element={

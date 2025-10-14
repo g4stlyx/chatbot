@@ -1,7 +1,9 @@
 import { useChat } from "../../context/ChatContext";
+import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 
 const Sidebar = ({ user, onLogout }) => {
+  const navigate = useNavigate();
   const {
     sessions,
     currentSession,
@@ -75,6 +77,29 @@ const Sidebar = ({ user, onLogout }) => {
       </div>
 
       <div className="sidebar-footer">
+        <button
+          className="profile-btn"
+          onClick={() => navigate("/profile")}
+          style={{
+            width: "100%",
+            padding: "10px",
+            marginBottom: "10px",
+            background: "transparent",
+            border: "1px solid #4b5563",
+            color: "white",
+            borderRadius: "8px",
+            cursor: "pointer",
+            transition: "all 0.2s",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "#374151";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "transparent";
+          }}
+        >
+          👤 My Profile
+        </button>
         <button className="logout-btn" onClick={onLogout}>
           Logout
         </button>

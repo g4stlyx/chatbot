@@ -52,6 +52,13 @@ export const authAPI = {
   login: (credentials) => api.post("/api/v1/auth/login", credentials),
   logout: () => api.post("/api/v1/auth/logout"),
   getCurrentUser: () => api.get("/api/v1/auth/me"),
+  forgotPassword: (email) =>
+    api.post("/api/v1/auth/forgot-password", { email }),
+  resetPassword: (token, newPassword) =>
+    api.post("/api/v1/auth/reset-password", { token, newPassword }),
+  resendVerification: (email) =>
+    api.post("/api/v1/auth/resend-verification", { email }),
+  verifyEmail: (token) => api.get(`/api/v1/auth/verify-email?token=${token}`),
 };
 
 // Chat API
@@ -93,6 +100,16 @@ export const messageAPI = {
   deleteMessage: (messageId) => api.delete(`/api/v1/messages/${messageId}`),
   regenerateResponse: (sessionId) =>
     api.post(`/api/v1/sessions/${sessionId}/regenerate`),
+};
+
+// Profile API
+export const profileAPI = {
+  getProfile: () => api.get("/api/v1/user/profile"),
+  updateProfile: (data) => api.put("/api/v1/user/profile", data),
+  changePassword: (data) =>
+    api.post("/api/v1/user/profile/change-password", data),
+  deactivateAccount: () => api.post("/api/v1/user/profile/deactivate"),
+  reactivateAccount: () => api.post("/api/v1/user/profile/reactivate"),
 };
 
 export default api;

@@ -100,6 +100,16 @@ const LoginPage = () => {
             />
           </div>
 
+          <div style={{ textAlign: "right", marginBottom: "15px" }}>
+            <Link
+              to="/forgot-password"
+              className="auth-link"
+              style={{ fontSize: "14px" }}
+            >
+              Forgot password?
+            </Link>
+          </div>
+
           <button type="submit" className="btn-primary" disabled={loading}>
             {loading ? "Logging in..." : "Login"}
           </button>
