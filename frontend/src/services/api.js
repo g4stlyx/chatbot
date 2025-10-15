@@ -84,11 +84,26 @@ export const chatAPI = {
 
 // Session API
 export const sessionAPI = {
-  getSessions: () => api.get("/api/v1/sessions"),
+  getSessions: (status = null) => {
+    const url = status
+      ? `/api/v1/sessions?status=${status}`
+      : "/api/v1/sessions";
+    return api.get(url);
+  },
+  getActiveSessions: () => api.get("/api/v1/sessions/active"),
   getSession: (sessionId) => api.get(`/api/v1/sessions/${sessionId}`),
-  deleteSession: (sessionId) => api.delete(`/api/v1/sessions/${sessionId}`),
+  createSession: (title = "New Conversation") =>
+    api.post("/api/v1/sessions", { title }),
   updateSession: (sessionId, data) =>
     api.put(`/api/v1/sessions/${sessionId}`, data),
+  renameSession: (sessionId, title) =>
+    api.put(`/api/v1/sessions/${sessionId}`, { title }),
+  deleteSession: (sessionId) => api.delete(`/api/v1/sessions/${sessionId}`),
+  archiveSession: (sessionId) =>
+    api.post(`/api/v1/sessions/${sessionId}/archive`),
+  pauseSession: (sessionId) => api.post(`/api/v1/sessions/${sessionId}/pause`),
+  activateSession: (sessionId) =>
+    api.post(`/api/v1/sessions/${sessionId}/activate`),
 };
 
 // Message API

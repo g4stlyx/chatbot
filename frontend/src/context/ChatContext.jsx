@@ -101,6 +101,147 @@ export const ChatProvider = ({ children }) => {
     }
   }, []);
 
+  // Edit message
+  const editMessage = useCallback(
+    async (messageId, content, regenerateResponse = false) => {
+      try {
+        const response = await messageAPI.editMessage(
+          messageId,
+          content,
+          regenerateResponse
+        );
+
+        if (regenerateResponse) {
+          // If regenerating, fetch fresh messages to get the new assistant response
+          if (currentSession) {
+            await fetchMessages(currentSession.sessionId);
+          }
+        } else {
+          // Just update the edited message
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === messageId ? { ...msg, content, isEdited: true } : msg
+            )
+          );
+        }
+
+        return response.data;
+      } catch (err) {
+        setError(err.response?.data?.message || "Failed to edit message");
+        throw err;
+      }
+    },
+    [currentSession, fetchMessages]
+  );
+
+  // Regenerate response
+  const regenerateResponse = useCallback(
+    async (sessionId) => {
+      try {
+        setLoading(true);
+        await messageAPI.regenerateResponse(sessionId);
+        // Fetch fresh messages to get the new response
+        await fetchMessages(sessionId);
+      } catch (err) {
+        setError(
+          err.response?.data?.message || "Failed to regenerate response"
+        );
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [fetchMessages]
+  );
+
+  // Rename session
+  const renameSession = useCallback(
+    async (sessionId, title) => {
+      try {
+        const response = await sessionAPI.renameSession(sessionId, title);
+        setSessions((prev) =>
+          prev.map((s) => (s.sessionId === sessionId ? { ...s, title } : s))
+        );
+
+        if (currentSession?.sessionId === sessionId) {
+          setCurrentSession((prev) => ({ ...prev, title }));
+        }
+
+        return response.data;
+      } catch (err) {
+        setError(err.response?.data?.message || "Failed to rename session");
+        throw err;
+      }
+    },
+    [currentSession]
+  );
+
+  // Archive session
+  const archiveSession = useCallback(
+    async (sessionId) => {
+      try {
+        await sessionAPI.archiveSession(sessionId);
+        setSessions((prev) =>
+          prev.map((s) =>
+            s.sessionId === sessionId ? { ...s, status: "ARCHIVED" } : s
+          )
+        );
+
+        if (currentSession?.sessionId === sessionId) {
+          setCurrentSession((prev) => ({ ...prev, status: "ARCHIVED" }));
+        }
+      } catch (err) {
+        setError(err.response?.data?.message || "Failed to archive session");
+        throw err;
+      }
+    },
+    [currentSession]
+  );
+
+  // Pause session
+  const pauseSession = useCallback(
+    async (sessionId) => {
+      try {
+        await sessionAPI.pauseSession(sessionId);
+        setSessions((prev) =>
+          prev.map((s) =>
+            s.sessionId === sessionId ? { ...s, status: "PAUSED" } : s
+          )
+        );
+
+        if (currentSession?.sessionId === sessionId) {
+          setCurrentSession((prev) => ({ ...prev, status: "PAUSED" }));
+        }
+      } catch (err) {
+        setError(err.response?.data?.message || "Failed to pause session");
+        throw err;
+      }
+    },
+    [currentSession]
+  );
+
+  // Activate/Resume session
+  const activateSession = useCallback(
+    async (sessionId) => {
+      try {
+        await sessionAPI.activateSession(sessionId);
+        setSessions((prev) =>
+          prev.map((s) =>
+            s.sessionId === sessionId ? { ...s, status: "ACTIVE" } : s
+          )
+        );
+
+        if (currentSession?.sessionId === sessionId) {
+          setCurrentSession((prev) => ({ ...prev, status: "ACTIVE" }));
+        }
+      } catch (err) {
+        setError(err.response?.data?.message || "Failed to activate session");
+        throw err;
+      }
+    },
+    [currentSession]
+  );
+
   const value = {
     sessions,
     currentSession,
@@ -115,6 +256,12 @@ export const ChatProvider = ({ children }) => {
     addMessage,
     updateMessage,
     deleteMessage,
+    editMessage,
+    regenerateResponse,
+    renameSession,
+    archiveSession,
+    pauseSession,
+    activateSession,
   };
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;

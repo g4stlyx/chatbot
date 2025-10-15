@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { useChat } from "../../context/ChatContext";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
+import SessionActions from "./SessionActions";
 
 const Sidebar = ({ user, onLogout }) => {
   const navigate = useNavigate();
@@ -10,12 +12,102 @@ const Sidebar = ({ user, onLogout }) => {
     selectSession,
     createNewSession,
     deleteSession,
+    renameSession,
+    archiveSession,
+    pauseSession,
+    activateSession,
   } = useChat();
 
-  const handleDeleteSession = (e, sessionId) => {
-    e.stopPropagation();
+  const [editingSessionId, setEditingSessionId] = useState(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+
+  // Filter sessions based on status
+  const filteredSessions = sessions.filter((session) => {
+    if (statusFilter === "ALL") return true;
+    return session.status === statusFilter;
+  });
+
+  const handleRename = (sessionId) => {
+    const session = sessions.find((s) => s.sessionId === sessionId);
+    if (session) {
+      setEditingSessionId(sessionId);
+      setEditTitle(session.title || "");
+    }
+  };
+
+  const handleSaveRename = async (sessionId) => {
+    if (
+      editTitle.trim() &&
+      editTitle !== sessions.find((s) => s.sessionId === sessionId)?.title
+    ) {
+      try {
+        await renameSession(sessionId, editTitle.trim());
+      } catch (error) {
+        console.error("Failed to rename session:", error);
+      }
+    }
+    setEditingSessionId(null);
+    setEditTitle("");
+  };
+
+  const handleCancelRename = () => {
+    setEditingSessionId(null);
+    setEditTitle("");
+  };
+
+  const handleDeleteSession = (sessionId) => {
     if (window.confirm("Are you sure you want to delete this conversation?")) {
       deleteSession(sessionId);
+    }
+  };
+
+  const handleArchive = async (sessionId) => {
+    try {
+      await archiveSession(sessionId);
+    } catch (error) {
+      console.error("Failed to archive session:", error);
+    }
+  };
+
+  const handlePause = async (sessionId) => {
+    try {
+      await pauseSession(sessionId);
+    } catch (error) {
+      console.error("Failed to pause session:", error);
+    }
+  };
+
+  const handleActivate = async (sessionId) => {
+    try {
+      await activateSession(sessionId);
+    } catch (error) {
+      console.error("Failed to activate session:", error);
+    }
+  };
+
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case "ACTIVE":
+        return (
+          <span className="status-badge active" title="Active">
+            ●
+          </span>
+        );
+      case "PAUSED":
+        return (
+          <span className="status-badge paused" title="Paused">
+            ●
+          </span>
+        );
+      case "ARCHIVED":
+        return (
+          <span className="status-badge archived" title="Archived">
+            ●
+          </span>
+        );
+      default:
+        return null;
     }
   };
 
@@ -31,38 +123,79 @@ const Sidebar = ({ user, onLogout }) => {
           + New Chat
         </button>
 
+        {/* Status Filter */}
+        <div className="status-filter">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="filter-select"
+          >
+            <option value="ALL">All Conversations</option>
+            <option value="ACTIVE">Active</option>
+            <option value="PAUSED">Paused</option>
+            <option value="ARCHIVED">Archived</option>
+          </select>
+        </div>
+
         <ul className="session-list">
-          {sessions.map((session) => (
+          {filteredSessions.map((session) => (
             <li
               key={session.sessionId}
               className={`session-item ${
                 currentSession?.sessionId === session.sessionId ? "active" : ""
               }`}
-              onClick={() => selectSession(session.sessionId)}
+              onClick={() =>
+                !editingSessionId && selectSession(session.sessionId)
+              }
             >
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="session-title">
-                  {session.title || "New Conversation"}
-                </div>
-                <div className="session-date">
-                  {session.createdAt &&
-                    formatDistanceToNow(new Date(session.createdAt), {
-                      addSuffix: true,
-                    })}
-                </div>
+              <div className="session-main">
+                {getStatusBadge(session.status)}
+
+                {editingSessionId === session.sessionId ? (
+                  <input
+                    type="text"
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    onBlur={() => handleSaveRename(session.sessionId)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        handleSaveRename(session.sessionId);
+                      } else if (e.key === "Escape") {
+                        handleCancelRename();
+                      }
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    autoFocus
+                    className="session-title-input"
+                  />
+                ) : (
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="session-title">
+                      {session.title || "New Conversation"}
+                    </div>
+                    <div className="session-date">
+                      {session.createdAt &&
+                        formatDistanceToNow(new Date(session.createdAt), {
+                          addSuffix: true,
+                        })}
+                    </div>
+                  </div>
+                )}
+
+                <SessionActions
+                  session={session}
+                  onRename={handleRename}
+                  onArchive={handleArchive}
+                  onPause={handlePause}
+                  onActivate={handleActivate}
+                  onDelete={handleDeleteSession}
+                />
               </div>
-              <button
-                className="delete-session-btn"
-                onClick={(e) => handleDeleteSession(e, session.sessionId)}
-                title="Delete conversation"
-              >
-                🗑️
-              </button>
             </li>
           ))}
         </ul>
 
-        {sessions.length === 0 && (
+        {filteredSessions.length === 0 && (
           <div
             style={{
               color: "#9ca3af",
@@ -71,7 +204,9 @@ const Sidebar = ({ user, onLogout }) => {
               fontSize: "14px",
             }}
           >
-            No conversations yet. Start a new chat!
+            {statusFilter === "ALL"
+              ? "No conversations yet. Start a new chat!"
+              : `No ${statusFilter.toLowerCase()} conversations.`}
           </div>
         )}
       </div>

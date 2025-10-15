@@ -51,6 +51,37 @@
   background: var(--primary-dark);
 }
 
+/* Status Filter */
+.status-filter {
+  margin-bottom: 15px;
+}
+
+.filter-select {
+  width: 100%;
+  padding: 10px 12px;
+  background: #374151;
+  border: 1px solid #4b5563;
+  color: white;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-select:hover {
+  background: #4b5563;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.filter-select option {
+  background: #374151;
+  color: white;
+}
+
 .session-list {
   list-style: none;
 }
@@ -62,9 +93,6 @@
   border-radius: 8px;
   cursor: pointer;
   transition: background 0.2s;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
 }
 
 .session-item:hover {
@@ -75,12 +103,49 @@
   background: var(--primary-color);
 }
 
+.session-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+/* Status Badges */
+.status-badge {
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.status-badge.active {
+  color: #10b981;
+}
+
+.status-badge.paused {
+  color: #f59e0b;
+}
+
+.status-badge.archived {
+  color: #6b7280;
+}
+
 .session-title {
   font-size: 14px;
   font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.session-title-input {
+  flex: 1;
+  background: #4b5563;
+  border: 2px solid var(--primary-color);
+  color: white;
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  outline: none;
 }
 
 .session-date {
@@ -177,8 +242,13 @@
   color: white;
 }
 
-.message-content {
+.message-body {
+  flex: 1;
   max-width: 70%;
+  position: relative;
+}
+
+.message-content {
   padding: 12px 16px;
   border-radius: 12px;
   line-height: 1.5;
@@ -193,6 +263,26 @@
   background: var(--surface-color);
   border: 1px solid var(--border-color);
   color: var(--text-primary);
+}
+
+.message-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  padding: 0 4px;
+}
+
+.message-time {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.edited-badge {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-style: italic;
+  margin-left: 8px;
 }
 
 /* Markdown content styling */
@@ -309,12 +399,6 @@
   border: none;
   border-top: 1px solid var(--border-color);
   margin: 1.5em 0;
-}
-
-.message-time {
-  font-size: 11px;
-  color: var(--text-secondary);
-  margin-top: 4px;
 }
 
 .typing-indicator {

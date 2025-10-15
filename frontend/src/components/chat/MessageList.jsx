@@ -1,12 +1,17 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { format } from "date-fns";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
+import MessageActions from "./MessageActions";
+import EditMessageModal from "./EditMessageModal";
+import { useChat } from "../../context/ChatContext";
 
-const MessageList = ({ messages }) => {
+const MessageList = ({ messages, isStreaming }) => {
   const messagesEndRef = useRef(null);
+  const [editingMessage, setEditingMessage] = useState(null);
+  const { editMessage, deleteMessage, regenerateResponse } = useChat();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -15,6 +20,26 @@ const MessageList = ({ messages }) => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const handleEdit = (message) => {
+    setEditingMessage(message);
+  };
+
+  const handleSaveEdit = async ({
+    messageId,
+    content,
+    regenerateResponse: shouldRegenerate,
+  }) => {
+    await editMessage(messageId, content, shouldRegenerate);
+  };
+
+  const handleDelete = async (messageId) => {
+    await deleteMessage(messageId);
+  };
+
+  const handleRegenerate = async (sessionId) => {
+    await regenerateResponse(sessionId);
+  };
 
   if (messages.length === 0) {
     return (
@@ -32,9 +57,9 @@ const MessageList = ({ messages }) => {
       {messages.map((message) => (
         <div key={message.id} className={`message ${message.role}`}>
           <div className="message-avatar">
-            {message.role === "user" ? "👤" : "🤖"}
+            {message.role === "USER" ? "👤" : "🤖"}
           </div>
-          <div>
+          <div className="message-body">
             <div className="message-content">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
@@ -60,16 +85,39 @@ const MessageList = ({ messages }) => {
               >
                 {message.content}
               </ReactMarkdown>
+              {message.isEdited && (
+                <span className="edited-badge" title="This message was edited">
+                  (edited)
+                </span>
+              )}
             </div>
-            {message.timestamp && (
-              <div className="message-time">
-                {format(new Date(message.timestamp), "HH:mm")}
-              </div>
-            )}
+            <div className="message-footer">
+              {message.timestamp && (
+                <div className="message-time">
+                  {format(new Date(message.timestamp), "HH:mm")}
+                </div>
+              )}
+              <MessageActions
+                message={message}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onRegenerate={handleRegenerate}
+                isStreaming={isStreaming}
+              />
+            </div>
           </div>
         </div>
       ))}
       <div ref={messagesEndRef} />
+
+      {/* Edit Message Modal */}
+      {editingMessage && (
+        <EditMessageModal
+          message={editingMessage}
+          onSave={handleSaveEdit}
+          onClose={() => setEditingMessage(null)}
+        />
+      )}
     </div>
   );
 };
