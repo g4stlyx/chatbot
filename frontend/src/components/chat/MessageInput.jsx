@@ -29,7 +29,7 @@ const MessageInput = () => {
       // Send message to backend (non-streaming)
       const response = await chatAPI.sendMessage(
         userMessage,
-        currentSession?.id
+        currentSession?.sessionId
       );
 
       console.log("Chat response:", response.data); // Debug log
