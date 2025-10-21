@@ -6,7 +6,7 @@
 - **Redis** - Önbellekleme sistemi
 - **Ollama/Llama3** - AI modeli
 - **JWT** - Kullanıcı doğrulama
-- **Argon2** - Şifre şifreleme
+- **Argon2** - Parola şifreleme
 - **Docker Compose** - Konteyner yönetimi
 - **Spring Mail** - Email gönderimi
 
@@ -15,9 +15,9 @@
 ### Kullanıcı Sistemi
 - ✅ Kayıt olma ve giriş yapma
 - ✅ Email doğrulama
-- ✅ Şifre sıfırlama (email ile)
+- ✅ Parola sıfırlama (email ile)
 - ✅ Profil görüntüleme ve düzenleme
-- ✅ Şifre değiştirme
+- ✅ Parola değiştirme
 - ✅ Hesap kapatma/açma
 
 ### Sohbet Sistemi
@@ -32,11 +32,11 @@
 - ✅ Admin yönetimi (seviyeli yetkilendirme)
 - ✅ Sohbet moderasyonu (tüm mesajları görme/silme)
 - ✅ Aktivite logları (38 işlemin kaydı)
-- ✅ Token yönetimi (şifre sıfırlama ve doğrulama token'leri)
+- ✅ Token yönetimi (parola sıfırlama ve doğrulama token'leri)
 
 ### Güvenlik
 - ✅ JWT ile güvenli giriş
-- ✅ Argon2 ile şifre şifreleme
+- ✅ Argon2 ile parola şifreleme
 - ✅ Rol tabanlı yetkilendirme
 - ✅ Admin seviyeleri (0, 1, 2)
 - ✅ Email rate limiting
