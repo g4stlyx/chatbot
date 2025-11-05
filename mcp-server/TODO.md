@@ -39,6 +39,11 @@
 * title ile chat arama (hem BE hem FE'e)
 * 🔄 chat sharing? (is_public) - Basic support added, needs testing
     * user a accessing user b's private chat should be tested too
+* projects kısmı, chatleri gruplandırmak için (gptdeki gibi)
+* hazır prompt şablonları, kullanıcı ekleyebilir veya admin panelden yönetilecek şekilde olabilir (tuğberk hocanın repodaki gibi)
+    * gemini'daki gem'ler tarzı bir şey olabilir
+        * ismi, açıklaması, system promptu (talimatları) var. bunun üstüne prompt giriliyor.
+
 
 ### FE updates
 * option for streaming or non-streaming answer on messages
