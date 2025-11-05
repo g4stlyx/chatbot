@@ -1,0 +1,45 @@
+# Backend
+
+### part 1 (8. hafta istenen rapor için)
+
+* güvenlik konfigürasyonları tamamlandı.
+    * CORS (dev. için sadece localhost, domain'e bağlanınca ayarlanabilir.)
+    * public endpointler ayarlandı, kalanlar JWT tokeni ve auth gerektiriyor.
+* temel konfigürasyonlar tamamlandı.    
+    * local'e ollama (llama:7b) modeli kuruldu, backend ile bağlantısı ve konfigürasyonları ayarlandı.
+    * local'e docker aracılığıyla redis kuruldu, bağlantısı ve konfigürasyonları ayarlandı.
+    * local'e mysql db kuruldu.
+* tüm modeller hazırlandı ve db yapısı tamamlandı.
+* şifre saklama, giriş, kayıt olma, şifre sıfırlama, email doğrulama işlemleri tamamlandı.
+    * argon2 ile hashleme, salt ve pepper kullanarak şifre saklama
+    * jwt token ile authentication sağlama
+    * giriş ve kayıt olma işlemleri için fonksiyonlar ve endpointler. 
+    * email doğrulama ve parola sıfırlama işlemleri için fonksiyonlar, endpointler, mail işlemleri.
+* admin ve kullanıcılar için profil işlemleri. servis fonksiyonları ve endpointler. hesap kapatma/açma işlemleri.
+* kullanıcılar için chat session yönetimi (CRUD, pause session, activate session, archive session)
+* kullanıcılar için chat mesaj yönetimi (creating a new session with a message and writing to an existing one)
+    * get message history, get single message
+    * edit message (2 endpoints, 1 for with regenerating the response, 1 for not doing it)
+    * regenerate last response
+    * streaming and non-streaming options
+
+### part 2 (son rapor için, uygulamanın full hali)
+
+* tüm admin panel işlemleri
+    * kullanıcı yönetimi (CRUD)
+    * admin yönetimi (level 0 adminler için) (CRUD)
+    * admin aktivitesi loglama, ve bu logları level 0 adminlerin görüntüleyebilmesi için endpointler. (read-only)
+    * chat session'larının, mesajların yönetimi (CRUD)
+    * email doğrulama ve şifre sıfırlama tokenlerini görüntülenmesi (read-only)
+* rate limiting için servis ve konfigürasyonlar ayarlandı.
+* çeşitli (redis, ollama vs.) health check eden servisler kuruldu.
+* log the auth. errors like 403 or 401 (or even 404s). who tried (if req. has a token), ip, etc. info (again with async processing)
+* 🔄 chat sharing? (is_public) - Basic support added, needs testing
+    * user a accessing user b's private chat should be tested too
+* projects kısmı, chatleri gruplandırmak için (gptdeki gibi)
+* hazır prompt şablonları, kullanıcı ekleyebilir veya admin panelden yönetilecek şekilde olabilir (tuğberk hocanın repodaki gibi)
+    * gemini'daki gem'ler tarzı bir şey olabilir
+        * ismi, açıklaması, system promptu (talimatları) var. bunun üstüne prompt giriliyor.
+* mobil?
+
+# Frontend

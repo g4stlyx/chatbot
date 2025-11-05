@@ -52,7 +52,8 @@ public class MessageService {
         log.info("Fetching message history for session: {}, user: {}", sessionId, userId);
         
         // Verify session belongs to user
-        ChatSession session = chatSessionRepository.findBySessionIdAndUserId(sessionId, userId)
+        // ChatSession session = chatSessionRepository.findBySessionIdAndUserId(sessionId, userId)
+        chatSessionRepository.findBySessionIdAndUserId(sessionId, userId)
                 .orElseThrow(() -> new RuntimeException("Session not found or access denied"));
         
         List<Message> messages = messageRepository.findBySessionIdOrderByTimestampAsc(sessionId);
@@ -78,7 +79,8 @@ public class MessageService {
                 .orElseThrow(() -> new RuntimeException("Message not found"));
         
         // Verify the session belongs to the user
-        ChatSession session = chatSessionRepository.findBySessionIdAndUserId(message.getSessionId(), userId)
+        // ChatSession session = chatSessionRepository.findBySessionIdAndUserId(message.getSessionId(), userId)
+        chatSessionRepository.findBySessionIdAndUserId(message.getSessionId(), userId)
                 .orElseThrow(() -> new RuntimeException("Access denied"));
         
         return MessageResponse.from(message);
@@ -114,7 +116,8 @@ public class MessageService {
                 .orElseThrow(() -> new RuntimeException("Message not found"));
         
         // Verify the session belongs to the user
-        ChatSession session = chatSessionRepository.findBySessionIdAndUserId(message.getSessionId(), userId)
+        // ChatSession session = chatSessionRepository.findBySessionIdAndUserId(message.getSessionId(), userId)
+        chatSessionRepository.findBySessionIdAndUserId(message.getSessionId(), userId)
                 .orElseThrow(() -> new RuntimeException("Access denied"));
         
         // Only allow editing USER messages
