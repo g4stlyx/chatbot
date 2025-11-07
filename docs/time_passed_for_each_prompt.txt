@@ -1,0 +1,119 @@
+Model: Ollama llama3:7b
+GPU: GTX 1650 Super 4GB
+
+1) kısa mat prompt
+{
+  "message": "What is 2+2?",
+  "model": "llama3",
+  "sessionTitle": "Quick Math"
+}
+"tokenCount": 5
+"time_passed": 9.10s
+
+2) kısa programlama/kodlama prompt
+{
+  "message": "Explain recursion briefly.",
+  "model": "llama3",
+  "sessionTitle": "CS Concepts"
+}
+"tokenCount": 328,
+"time_passed": 35.94s
+
+3) kısa biyoloji prompt
+{
+  "message": "Define photosynthesis.",
+  "model": "llama3",
+  "sessionTitle": "Biology Basics"
+}
+"tokenCount": 247,
+"time_passed": 29.74 s
+
+4) uzun programlama/kodlama prompt
+{
+  "message": "I'm building a microservices architecture using Spring Boot, Docker, and Kubernetes. I need to implement a distributed tracing system with OpenTelemetry, set up service mesh with Istio, implement circuit breakers with Resilience4j, and ensure proper logging aggregation with ELK stack. Can you provide a comprehensive guide with code examples, configuration files, best practices for security, performance optimization strategies, and common pitfalls to avoid? Also explain how to handle database transactions across multiple services and implement the Saga pattern.",
+  "model": "llama3",
+  "sessionTitle": "Microservices Architecture"
+}
+"tokenCount": 1627,
+"time_passed": 4m
+
+5) programlama/kodlama
+{
+  "message": "Write a Python function to reverse a string.",
+  "model": "llama3",
+  "sessionTitle": "Python String Operations"
+}
+"tokenCount": 125,
+"time_passed": 18.54s
+
+6) programlama/kodlama
+{
+  "message": "How do I implement a REST API authentication using JWT tokens in Node.js with Express? Include middleware setup, token generation, verification, refresh token logic, and proper error handling.",
+  "model": "llama3",
+  "sessionTitle": "JWT Authentication Guide"
+}
+"tokenCount": 1028
+"time_passed": 2 m 36.37 s
+
+7) günlük hayat
+{
+  "message": "Give me a simple recipe for spaghetti carbonara.",
+  "model": "llama3",
+  "sessionTitle": "Cooking Tips"
+}
+"tokenCount": 389
+"time_passed": 52.11 s
+
+8) günlük hayat biraz uzun
+{
+  "message": "I'm planning a 2-week trip to Japan in spring. I want to visit Tokyo, Kyoto, and Osaka. What's the best itinerary? Where should I stay? What are must-see attractions? How much budget should I prepare? What local foods must I try? Do I need a JR Pass? What cultural etiquette should I know? Best time to see cherry blossoms?",
+  "model": "llama3",
+  "sessionTitle": "Japan Travel Planning"
+}
+"tokenCount": 867
+"time_passed": 2 m 15.24 s
+
+9) tıbbi
+{
+  "message": "What are symptoms of vitamin D deficiency?",
+  "model": "llama3",
+  "sessionTitle": "Vitamin Info"
+}
+"tokenCount": 501
+"time_passed": 1 m 6.30 s
+
+10) tıbbi biraz uzun
+{
+  "message": "I've been having lower back pain for 3 weeks. It gets worse when I sit for long hours at my desk. The pain radiates down my left leg sometimes. I'm 28 years old, work as a software developer, and recently started going to the gym. What could be causing this? What exercises or stretches might help? Should I see a doctor immediately or can I try home remedies first? What's the difference between a herniated disc and muscle strain?",
+  "model": "llama3",
+  "sessionTitle": "Back Pain Assessment"
+}
+"tokenCount": 834
+"time_passed": 1 m 42.12 s
+
+11) bilim/mat biraz uzun
+{
+  "message": "Explain Einstein's theory of relativity, including both special and general relativity, with real-world examples. How does time dilation work? What are the implications for space travel? How does GPS technology rely on relativity corrections? What is the twin paradox and how is it resolved?",
+  "model": "llama3",
+  "sessionTitle": "Relativity Explained"
+}
+"tokenCount": 1132
+"time_passed": 2 m 5.94 s
+
+12) çok kısa prompt
+{
+  "message": "Hi",
+  "model": "llama3",
+  "sessionTitle": "Minimal Test"
+}
+"tokenCount": 23
+"time_passed": 3.79 s
+
+13) çok uzun (üst sınırları zorlayan) prompt
+{
+  "message": "Generate a complete REST API documentation for an e-commerce platform including user management, product catalog, shopping cart, order processing, payment integration, inventory management, shipping tracking, review system, and admin dashboard. Include all endpoints, request/response examples, authentication flows, error codes, rate limiting strategies, webhooks, and OpenAPI specification. Also provide database schema design, caching strategies, scalability considerations, and deployment architecture.",
+  "model": "llama3",
+  "sessionTitle": "Maximum Length Test"
+}
+"tokenCount": 2040
+"time_passed": 5 m 2.40 s
