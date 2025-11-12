@@ -1,0 +1,125 @@
+// Chatbot System Architecture
+digraph {
+	bgcolor="#F8F9FA" dpi=300 nodesep=1.2 rankdir=LR ranksep=2.0 splines=spline
+	node [fontname="Segoe UI" fontsize=11]
+	edge [fontname="Segoe UI" fontsize=9]
+	subgraph cluster_frontend {
+		color="#E3F2FD" fillcolor="#E3F2FD" fontname="Segoe UI Bold" fontsize=14 label="🎨 Frontend Layer" labeljust=l margin=20 penwidth=2 style="filled,rounded"
+		Browser [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="10" BGCOLOR="white">
+            <TR><TD BGCOLOR="#61DAFB" COLSPAN="2"><B><FONT POINT-SIZE="13">🌐 React Frontend</FONT></B></TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2" BGCOLOR="#E3F2FD"><B>Vite + React 18</B></TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2">Port: 5173</TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2" BGCOLOR="#F5F5F5"><B>Pages:</B></TD></TR>
+            <TR><TD ALIGN="LEFT">• ChatPage</TD><TD ALIGN="LEFT">• LoginPage</TD></TR>
+            <TR><TD ALIGN="LEFT">• RegisterPage</TD><TD ALIGN="LEFT">• ProfilePage</TD></TR>
+            <TR><TD ALIGN="LEFT">• ForgotPassword</TD><TD ALIGN="LEFT">• ResetPassword</TD></TR>
+            <TR><TD ALIGN="LEFT">• EmailVerify</TD><TD ALIGN="LEFT">• AdminDashboard</TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2" BGCOLOR="#F5F5F5"><B>Features:</B></TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2">• Context API (Auth, Chat)</TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2">• Custom Hooks</TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2">• Component Library</TD></TR>
+        </TABLE>> shape=plaintext]
+	}
+	subgraph cluster_backend {
+		color="#E8F5E9" fillcolor="#E8F5E9" fontname="Segoe UI Bold" fontsize=14 label="⚙️ Backend Layer" labeljust=l margin=20 penwidth=2 style="filled,rounded"
+		SpringBoot [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="10" BGCOLOR="white">
+            <TR><TD BGCOLOR="#6DB33F" COLSPAN="2"><B><FONT COLOR="white" POINT-SIZE="13">☕ Spring Boot REST API</FONT></B></TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2" BGCOLOR="#E8F5E9"><B>Java 17 + Spring Boot 3.4.4</B></TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2">Port: 8080</TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2" BGCOLOR="#F5F5F5"><B>Controllers (12):</B></TD></TR>
+            <TR><TD ALIGN="LEFT">• AuthController</TD><TD ALIGN="LEFT">• ChatController</TD></TR>
+            <TR><TD ALIGN="LEFT">• ChatSessionController</TD><TD ALIGN="LEFT">• MessageController</TD></TR>
+            <TR><TD ALIGN="LEFT">• UserProfileController</TD><TD ALIGN="LEFT">• UserManagementController</TD></TR>
+            <TR><TD ALIGN="LEFT">• AdminManagementController</TD><TD ALIGN="LEFT">• AdminProfileController</TD></TR>
+            <TR><TD ALIGN="LEFT">• AdminSessionController</TD><TD ALIGN="LEFT">• AdminMessageController</TD></TR>
+            <TR><TD ALIGN="LEFT">• AdminActivityLogController</TD><TD ALIGN="LEFT">• AdminTokenManagement</TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2" BGCOLOR="#F5F5F5"><B>Core Services:</B></TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2">• JWT Authentication & Authorization</TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2">• Session & Message Management</TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2">• User & Admin Services</TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2">• Email Service (SMTP)</TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2">• Activity Logging & Auditing</TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2">• Rate Limiting & Security</TD></TR>
+        </TABLE>> shape=plaintext]
+	}
+	subgraph cluster_database {
+		color="#FFF3E0" fillcolor="#FFF3E0" fontname="Segoe UI Bold" fontsize=14 label="💾 Database Layer" labeljust=l margin=20 penwidth=2 style="filled,rounded"
+		MySQL [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="10" BGCOLOR="white">
+            <TR><TD BGCOLOR="#00758F" COLSPAN="2"><FONT COLOR="white"><B><FONT POINT-SIZE="13">🐬 MySQL Database</FONT></B></FONT></TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2" BGCOLOR="#FFF3E0"><B>Relational DBMS</B></TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2">Port: 3306</TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2" BGCOLOR="#F5F5F5"><B>Tables (8):</B></TD></TR>
+            <TR><TD ALIGN="LEFT">• users</TD><TD ALIGN="LEFT">• admins</TD></TR>
+            <TR><TD ALIGN="LEFT">• chat_sessions</TD><TD ALIGN="LEFT">• messages</TD></TR>
+            <TR><TD ALIGN="LEFT">• message_flags</TD><TD ALIGN="LEFT">• admin_activity_log</TD></TR>
+            <TR><TD ALIGN="LEFT">• verification_tokens</TD><TD ALIGN="LEFT">• password_reset_tokens</TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2" BGCOLOR="#F5F5F5"><B>Features:</B></TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2">• JPA/Hibernate ORM</TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2">• Connection Pooling</TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2">• Transaction Management</TD></TR>
+        </TABLE>> shape=plaintext]
+	}
+	subgraph cluster_cache {
+		color="#FFEBEE" fillcolor="#FFEBEE" fontname="Segoe UI Bold" fontsize=14 label="⚡ Cache Layer" labeljust=l margin=20 penwidth=2 style="filled,rounded"
+		Redis [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="10" BGCOLOR="white">
+            <TR><TD BGCOLOR="#DC382D" COLSPAN="2"><FONT COLOR="white"><B><FONT POINT-SIZE="13">⚡ Redis Cache</FONT></B></FONT></TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2" BGCOLOR="#FFEBEE"><B>In-Memory Data Store</B></TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2">Port: 6379</TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2">Docker: chatbot-redis</TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2" BGCOLOR="#F5F5F5"><B>Use Cases:</B></TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2">• Session Data Caching</TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2">• Rate Limiting</TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2">• JWT Token Blacklist</TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2">• Temporary Token Storage</TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2">• Response Caching</TD></TR>
+        </TABLE>> shape=plaintext]
+	}
+	subgraph cluster_ai {
+		color="#F3E5F5" fillcolor="#F3E5F5" fontname="Segoe UI Bold" fontsize=14 label="🤖 AI/LLM Layer" labeljust=l margin=20 penwidth=2 style="filled,rounded"
+		Ollama [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="10" BGCOLOR="white">
+            <TR><TD BGCOLOR="#000000" COLSPAN="2"><FONT COLOR="white"><B><FONT POINT-SIZE="13">🤖 Ollama LLM Server</FONT></B></FONT></TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2" BGCOLOR="#F3E5F5"><B>Local Language Model</B></TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2">Port: 11434</TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2" BGCOLOR="#F5F5F5"><B>Available Models:</B></TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2">• llama3 (Default)</TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2">• Other Compatible Models</TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2" BGCOLOR="#F5F5F5"><B>API Endpoints:</B></TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2">• POST /api/generate</TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2">• POST /api/chat</TD></TR>
+        </TABLE>> shape=plaintext]
+	}
+	subgraph cluster_external {
+		color="#E8EAF6" fillcolor="#E8EAF6" fontname="Segoe UI Bold" fontsize=14 label="📨 External Services" labeljust=l margin=20 penwidth=2 style="filled,rounded"
+		Email [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="10" BGCOLOR="white">
+            <TR><TD BGCOLOR="#EA4335" COLSPAN="2"><FONT COLOR="white"><B><FONT POINT-SIZE="13">📧 Email Service</FONT></B></FONT></TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2" BGCOLOR="#E8EAF6"><B>SMTP Server</B></TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2" BGCOLOR="#F5F5F5"><B>Features:</B></TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2">• Email Verification Links</TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2">• Password Reset Tokens</TD></TR>
+            <TR><TD ALIGN="LEFT" COLSPAN="2">• System Notifications</TD></TR>
+        </TABLE>> shape=plaintext]
+	}
+	Browser -> SpringBoot [label="  HTTP/REST API
+  JWT Authentication
+  JSON Payloads  " arrowsize=1.2 color="#1976D2" fontcolor="#1976D2" fontsize=10 penwidth=3.0]
+	SpringBoot -> MySQL [label="  JPA/Hibernate
+  SQL Queries
+  Transactions  " arrowsize=1.2 color="#388E3C" fontcolor="#388E3C" fontsize=10 penwidth=3.0]
+	SpringBoot -> Redis [label="  Caching
+  Rate Limiting
+  Session Store  " arrowsize=1.2 color="#D32F2F" fontcolor="#D32F2F" fontsize=10 penwidth=2.5 style=dashed]
+	SpringBoot -> Ollama [label="  Chat Prompts
+  AI Responses
+  Streaming  " arrowsize=1.2 color="#7B1FA2" fontcolor="#7B1FA2" fontsize=10 penwidth=3.0]
+	SpringBoot -> Email [label="  SMTP
+  Async Emails
+  Templates  " arrowsize=1.2 color="#F57C00" fontcolor="#F57C00" fontsize=10 penwidth=2.5 style=dashed]
+	subgraph cluster_legend {
+		color="#ECEFF1" fillcolor="#ECEFF1" fontname="Segoe UI Bold" fontsize=11 label="📋 Communication Legend" margin=15 penwidth=2 style="filled,rounded"
+		legend [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="8" BGCOLOR="white">
+            <TR><TD ALIGN="LEFT" BGCOLOR="#F5F5F5"><B>Line Type</B></TD><TD ALIGN="LEFT" BGCOLOR="#F5F5F5"><B>Description</B></TD></TR>
+            <TR><TD ALIGN="LEFT">━━━ Solid</TD><TD ALIGN="LEFT">Synchronous Communication</TD></TR>
+            <TR><TD ALIGN="LEFT">╌╌╌ Dashed</TD><TD ALIGN="LEFT">Asynchronous/Caching</TD></TR>
+        </TABLE>> shape=plaintext]
+	}
+}
