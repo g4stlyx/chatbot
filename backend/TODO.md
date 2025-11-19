@@ -43,7 +43,7 @@
 * hazır prompt şablonları, kullanıcı ekleyebilir veya admin panelden yönetilecek şekilde olabilir (tuğberk hocanın repodaki gibi)
     * gemini'daki gem'ler tarzı bir şey olabilir
         * ismi, açıklaması, system promptu (talimatları) var. bunun üstüne prompt giriliyor.
-
+* !!!! ÖNEMLİ: Sabit, kısa bir system prompt + prompt injection koruması. (https://chatgpt.com/share/690c2814-9438-8005-b5f5-f71a62c0f7b3)
 
 ### FE updates
 * option for streaming or non-streaming answer on messages
