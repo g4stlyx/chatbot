@@ -41,6 +41,9 @@ public class ChatService {
     @Autowired
     private PromptValidationService promptValidationService;
     
+    @Autowired
+    private OutputValidationService outputValidationService;
+    
     /**
      * Handle chat with streaming response (Server-Sent Events)
      */
@@ -130,13 +133,36 @@ public class ChatService {
                         },
                         () -> {
                             try {
-                                // 7. Save assistant message
+                                String finalResponse = fullResponse.toString();
+                                
+                                // SECURITY: Validate AI output for security violations
+                                OutputValidationService.OutputValidationResult validationResult = 
+                                    outputValidationService.validateOutput(
+                                        finalResponse, 
+                                        userId, 
+                                        request.getMessage(),
+                                        null, // IP address - can be added if HttpServletRequest is passed
+                                        null, // User agent - can be added if HttpServletRequest is passed
+                                        "/api/chat/stream"
+                                    );
+                                
+                                // Use validated/sanitized output
+                                String safeResponse = validationResult.getOutput();
+                                
+                                // 7. Save assistant message with validated output
                                 Message assistantMessage = saveAssistantMessage(
                                         sessionId, 
-                                        fullResponse.toString(), 
+                                        safeResponse, 
                                         request.getModel()
                                 );
                                 assistantMessageId.set(assistantMessage.getId());
+                                
+                                // If output was blocked, send warning event
+                                if (!validationResult.isSafe()) {
+                                    emitter.send(SseEmitter.event()
+                                            .name("warning")
+                                            .data("{\"message\":\"Response was filtered for security reasons\"}"));
+                                }
                                 
                                 // 8. Update session stats
                                 updateSessionStats(sessionId);
@@ -203,11 +229,30 @@ public class ChatService {
             // Step 2: Call Ollama (long-running) - NO DB transaction held
             String assistantResponse = ollamaService.chat(context.model, context.ollamaMessages);
             
+            // SECURITY: Validate AI output for security violations
+            OutputValidationService.OutputValidationResult validationResult = 
+                outputValidationService.validateOutput(
+                    assistantResponse, 
+                    userId, 
+                    request.getMessage(),
+                    null, // IP address - can be added if HttpServletRequest is passed
+                    null, // User agent - can be added if HttpServletRequest is passed
+                    "/api/chat"
+                );
+            
+            // Use validated/sanitized output
+            String safeResponse = validationResult.getOutput();
+            
             // Step 3: Save result and update stats in a transaction (fast DB operations)
             ChatResponse response = saveChatResponseInTransaction(
-                context.sessionId, context.userMessage, assistantResponse, 
+                context.sessionId, context.userMessage, safeResponse, 
                 context.model, context.isNewSession
             );
+            
+            // Add security warning if output was filtered
+            if (!validationResult.isSafe()) {
+                log.warn("AI output was filtered for user {} due to security violations", userId);
+            }
             
             return response;
                     

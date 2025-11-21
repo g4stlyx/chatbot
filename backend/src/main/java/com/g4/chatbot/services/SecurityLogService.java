@@ -275,6 +275,69 @@ public class SecurityLogService {
     }
     
     /**
+     * Log output validation violation (AI revealing system prompt, breaking character, etc.)
+     */
+    @Async
+    public void logOutputViolation(Long userId, java.util.List<String> violations, String userMessage, 
+                                     String aiOutput, String ipAddress, String userAgent, String endpoint) {
+        if (!systemPromptConfig.isLogInjectionAttempts()) {
+            return;
+        }
+        
+        try {
+            String violationSummary = String.join("; ", violations);
+            
+            // Increment user's injection attempt counter (output violations are also security issues)
+            AtomicInteger attempts = userInjectionAttempts.computeIfAbsent(userId, k -> new AtomicInteger(0));
+            int currentAttempts = attempts.incrementAndGet();
+            
+            // Output violations are considered HIGH severity as they indicate successful manipulation
+            PromptInjectionLog.Severity severity = PromptInjectionLog.Severity.HIGH;
+            
+            // Save to database
+            PromptInjectionLog injectionLog = PromptInjectionLog.builder()
+                    .userId(userId)
+                    .detectedPattern("OUTPUT_VIOLATION: " + violationSummary)
+                    .userMessage(userMessage)
+                    .ipAddress(ipAddress)
+                    .userAgent(userAgent)
+                    .endpoint(endpoint)
+                    .severity(severity)
+                    .attemptCount(currentAttempts)
+                    .blocked(true)
+                    .emailSent(false)
+                    .build();
+            
+            promptInjectionLogRepository.save(injectionLog);
+            
+            // Log to console with special formatting for output violations
+            log.warn("╔════════════════════════════════════════════════════════════════");
+            log.warn("║ SECURITY ALERT: AI Output Violation Detected");
+            log.warn("╠════════════════════════════════════════════════════════════════");
+            log.warn("║ User ID:          {}", userId);
+            log.warn("║ IP Address:       {}", ipAddress != null ? ipAddress : "Unknown");
+            log.warn("║ Violations:       {}", violations.size());
+            for (String violation : violations) {
+                log.warn("║   - {}", truncate(violation, 70));
+            }
+            log.warn("║ Attempt Count:    {} (for this user)", currentAttempts);
+            log.warn("║ Timestamp:        {}", LocalDateTime.now());
+            log.warn("╠════════════════════════════════════════════════════════════════");
+            log.warn("║ User Message:     {}", truncate(userMessage, 150));
+            log.warn("║ AI Output:        {}", truncate(aiOutput, 150));
+            log.warn("╚════════════════════════════════════════════════════════════════");
+            
+            // Send email alert for output violations (always critical)
+            if (sendEmailAlerts) {
+                sendEmailAlert(userId, "AI Output Violation", userMessage, ipAddress, currentAttempts, severity);
+            }
+            
+        } catch (Exception e) {
+            log.error("Error logging output violation: ", e);
+        }
+    }
+    
+    /**
      * Get injection attempt count for a user
      */
     public int getInjectionAttemptCount(Long userId) {
