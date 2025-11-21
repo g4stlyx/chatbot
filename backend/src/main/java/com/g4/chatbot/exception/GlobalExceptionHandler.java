@@ -1,9 +1,13 @@
 package com.g4.chatbot.exception;
 
+import com.g4.chatbot.services.SecurityLogService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -16,6 +20,9 @@ import java.util.Map;
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
+    
+    @Autowired
+    private SecurityLogService securityLogService;
     
     /**
      * Handle Resource Not Found Exception
@@ -81,6 +88,43 @@ public class GlobalExceptionHandler {
     }
     
     /**
+     * Handle Prompt Security Exception (Prompt Injection Attempts)
+     */
+    @ExceptionHandler(PromptSecurityException.class)
+    public ResponseEntity<ErrorResponse> handlePromptSecurityException(
+            PromptSecurityException ex, 
+            HttpServletRequest request) {
+        
+        // Extract user ID from security context
+        Long userId = getCurrentUserId();
+        
+        // Log the security incident asynchronously
+        securityLogService.logPromptInjectionAttempt(
+            userId,
+            ex.getDetectedPattern(),
+            ex.getUserMessage(),
+            getClientIP(request),
+            request.getHeader("User-Agent")
+        );
+        
+        log.warn("SECURITY: Prompt injection attempt detected - Pattern: {}, Path: {}, IP: {}, User: {}", 
+                ex.getDetectedPattern(),
+                request.getRequestURI(),
+                getClientIP(request),
+                userId);
+        
+        ErrorResponse errorResponse = new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                "Security Violation",
+                ex.getMessage(),
+                request.getRequestURI(),
+                LocalDateTime.now()
+        );
+        
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+    
+    /**
      * Handle Validation Exceptions
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -126,5 +170,31 @@ public class GlobalExceptionHandler {
         );
         
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+    }
+    
+    /**
+     * Helper method to get client IP address
+     */
+    private String getClientIP(HttpServletRequest request) {
+        String xfHeader = request.getHeader("X-Forwarded-For");
+        if (xfHeader == null) {
+            return request.getRemoteAddr();
+        }
+        return xfHeader.split(",")[0];
+    }
+    
+    /**
+     * Helper method to get current user ID from security context
+     */
+    private Long getCurrentUserId() {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication != null && authentication.getDetails() instanceof Long) {
+                return (Long) authentication.getDetails();
+            }
+        } catch (Exception e) {
+            log.debug("Could not extract user ID from security context", e);
+        }
+        return null;
     }
 }

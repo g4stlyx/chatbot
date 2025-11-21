@@ -38,11 +38,19 @@ public class ChatService {
     @Autowired
     private MessageRepository messageRepository;
     
+    @Autowired
+    private PromptValidationService promptValidationService;
+    
     /**
      * Handle chat with streaming response (Server-Sent Events)
      */
     public SseEmitter chatWithStreaming(Long userId, ChatRequest request) {
         log.info("Starting streaming chat for user: {}", userId);
+        
+        // SECURITY: Validate and sanitize user input before processing
+        promptValidationService.validateUserInput(request.getMessage());
+        String sanitizedMessage = promptValidationService.sanitizeInput(request.getMessage());
+        request.setMessage(sanitizedMessage);
         
         SseEmitter emitter = new SseEmitter(300000L); // 5 minute timeout
         
@@ -182,6 +190,11 @@ public class ChatService {
      */
     public ChatResponse chat(Long userId, ChatRequest request) {
         log.info("Processing non-streaming chat for user: {}", userId);
+        
+        // SECURITY: Validate and sanitize user input before processing
+        promptValidationService.validateUserInput(request.getMessage());
+        String sanitizedMessage = promptValidationService.sanitizeInput(request.getMessage());
+        request.setMessage(sanitizedMessage);
         
         try {
             // Step 1: Prepare chat context in a transaction (fast DB operations)

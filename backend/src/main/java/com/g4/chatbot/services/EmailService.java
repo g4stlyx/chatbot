@@ -133,17 +133,29 @@ public class EmailService {
      * @param body The HTML body content of the email
      */
     public void sendSystemNotificationEmail(String subject, String body) {
+        sendSystemNotificationEmail(adminEmail, subject, body);
+    }
+    
+    /**
+     * Sends a system notification email to a specific recipient
+     * This is used for automated alerts and monitoring notifications
+     *
+     * @param to The recipient email address
+     * @param subject The email subject
+     * @param body The HTML body content of the email
+     */
+    public void sendSystemNotificationEmail(String to, String subject, String body) {
         try {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
 
             helper.setFrom(fromEmail);
-            helper.setTo(adminEmail);
+            helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(body, true); // true indicates HTML content
 
             mailSender.send(mimeMessage);
-            System.out.println("System notification email sent successfully to admin");
+            System.out.println("System notification email sent successfully to " + to);
         } catch (MessagingException e) {
             System.err.println("Failed to send system notification email: " + e.getMessage());
         }

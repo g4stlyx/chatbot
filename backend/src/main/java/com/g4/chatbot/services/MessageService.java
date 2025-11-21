@@ -31,6 +31,9 @@ public class MessageService {
     @Autowired
     private OllamaService ollamaService;
     
+    @Autowired
+    private PromptValidationService promptValidationService;
+    
     /**
      * Helper class to hold regeneration context between transaction boundaries
      */
@@ -92,6 +95,11 @@ public class MessageService {
      */
     public MessageResponse updateMessage(Long messageId, UpdateMessageRequest request, Long userId) {
         log.info("Updating message: {} for user: {}", messageId, userId);
+        
+        // SECURITY: Validate and sanitize the updated message content
+        promptValidationService.validateUserInput(request.getContent());
+        String sanitizedContent = promptValidationService.sanitizeInput(request.getContent());
+        request.setContent(sanitizedContent);
         
         // Step 1: Update the message in a short transaction
         Message updated = updateMessageInTransaction(messageId, request, userId);

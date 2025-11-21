@@ -1,6 +1,7 @@
 package com.g4.chatbot.services;
 
 import com.g4.chatbot.config.OllamaConfig;
+import com.g4.chatbot.config.SystemPromptConfig;
 import com.g4.chatbot.dto.ollama.OllamaChatRequest;
 import com.g4.chatbot.dto.ollama.OllamaChatResponse;
 import com.g4.chatbot.dto.ollama.OllamaMessage;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -19,6 +21,9 @@ public class OllamaService {
     
     @Autowired
     private OllamaConfig ollamaConfig;
+    
+    @Autowired
+    private SystemPromptConfig systemPromptConfig;
     
     private final WebClient webClient;
     
@@ -105,10 +110,33 @@ public class OllamaService {
     }
     
     /**
-     * Build message history from conversation
+     * Build message history from conversation with system prompt injection
+     * SECURITY: Always injects system prompt at the beginning to prevent prompt injection
      */
     public List<OllamaMessage> buildMessageHistory(List<com.g4.chatbot.models.Message> dbMessages) {
-        return dbMessages.stream()
+        List<OllamaMessage> messages = new ArrayList<>();
+        
+        // SECURITY: Always inject system prompt at the beginning
+        if (systemPromptConfig.isEnabled()) {
+            messages.add(OllamaMessage.builder()
+                    .role("system")
+                    .content(systemPromptConfig.getSystemPrompt())
+                    .build());
+            log.debug("Injected system prompt ({} chars)", systemPromptConfig.getSystemPrompt().length());
+        }
+        
+        // Limit conversation history to prevent context window exploitation
+        int maxMessages = systemPromptConfig.getMaxHistoryMessages();
+        List<com.g4.chatbot.models.Message> limitedMessages = dbMessages;
+        
+        if (dbMessages.size() > maxMessages) {
+            // Keep only the most recent messages
+            limitedMessages = dbMessages.subList(dbMessages.size() - maxMessages, dbMessages.size());
+            log.debug("Limited message history from {} to {} messages", dbMessages.size(), maxMessages);
+        }
+        
+        // Convert database messages to Ollama format
+        List<OllamaMessage> conversationMessages = limitedMessages.stream()
                 .map(msg -> {
                     // CRITICAL FIX: Use Locale.ENGLISH to avoid Turkish locale issue
                     // Turkish locale converts 'I' to 'ı' (dotless i) instead of 'i'
@@ -121,6 +149,13 @@ public class OllamaService {
                             .build();
                 })
                 .toList();
+        
+        messages.addAll(conversationMessages);
+        
+        log.debug("Built message history: {} total messages (1 system + {} conversation)", 
+                messages.size(), conversationMessages.size());
+        
+        return messages;
     }
     
     /**

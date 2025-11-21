@@ -1451,6 +1451,151 @@
 					"response": []
 				}
 			]
+		},
+		{
+			"name": "Prompt Injection Logs (Security)",
+			"item": [
+				{
+					"name": "Get All Injection Logs",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/prompt-injection-logs?page=0&size=20&sortBy=createdAt&sortDirection=desc",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"admin",
+								"prompt-injection-logs"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "20"
+								},
+								{
+									"key": "sortBy",
+									"value": "createdAt"
+								},
+								{
+									"key": "sortDirection",
+									"value": "desc"
+								},
+								{
+									"key": "userId",
+									"value": "",
+									"disabled": true
+								},
+								{
+									"key": "severity",
+									"value": "",
+									"disabled": true,
+									"description": "LOW, MEDIUM, HIGH, CRITICAL"
+								}
+							]
+						},
+						"description": "Retrieve all prompt injection attempt logs with pagination and optional filtering by user ID and severity level"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Injection Log by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/prompt-injection-logs/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"admin",
+								"prompt-injection-logs",
+								"1"
+							]
+						},
+						"description": "Get detailed information about a specific prompt injection attempt"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Injection Log (Level 0)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/prompt-injection-logs/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"admin",
+								"prompt-injection-logs",
+								"1"
+							]
+						},
+						"description": "Delete a prompt injection log (Level 0 admins only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Injection Statistics",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/prompt-injection-logs/statistics",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"admin",
+								"prompt-injection-logs",
+								"statistics"
+							]
+						},
+						"description": "Get statistical overview of prompt injection attempts including severity breakdown and recent activity"
+					},
+					"response": []
+				}
+			]
 		}
 	],
 	"variable": [
