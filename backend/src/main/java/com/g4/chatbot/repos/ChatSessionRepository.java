@@ -62,4 +62,16 @@ public interface ChatSessionRepository extends JpaRepository<ChatSession, String
     Page<ChatSession> findByStatusAndIsFlagged(ChatSession.SessionStatus status, Boolean isFlagged, Pageable pageable);
     
     Page<ChatSession> findByUserIdAndStatusAndIsFlagged(Long userId, ChatSession.SessionStatus status, Boolean isFlagged, Pageable pageable);
+    
+    // Search sessions by title
+    @Query("SELECT cs FROM ChatSession cs WHERE cs.userId = :userId AND LOWER(cs.title) LIKE LOWER(CONCAT('%', :searchTerm, '%')) AND cs.status != 'DELETED' ORDER BY cs.createdAt DESC")
+    Page<ChatSession> searchByUserIdAndTitle(@Param("userId") Long userId, @Param("searchTerm") String searchTerm, Pageable pageable);
+    
+    // Find all public sessions (excluding deleted ones)
+    @Query("SELECT cs FROM ChatSession cs WHERE cs.isPublic = true AND cs.status != 'DELETED' ORDER BY cs.createdAt DESC")
+    Page<ChatSession> findPublicSessions(Pageable pageable);
+    
+    // Find public session by ID
+    @Query("SELECT cs FROM ChatSession cs WHERE cs.sessionId = :sessionId AND cs.isPublic = true AND cs.status != 'DELETED'")
+    java.util.Optional<ChatSession> findPublicSessionById(@Param("sessionId") String sessionId);
 }

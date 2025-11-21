@@ -107,4 +107,18 @@ public class MessageController {
         MessageResponse response = messageService.regenerateLastResponse(sessionId, userId, model);
         return ResponseEntity.ok(response);
     }
+    
+    /**
+     * GET /api/v1/sessions/public/{sessionId}/messages
+     * Get all messages in a public session (no authentication required)
+     */
+    @GetMapping("/sessions/public/{sessionId}/messages")
+    public ResponseEntity<MessageHistoryResponse> getPublicSessionMessages(
+            @PathVariable String sessionId) {
+        
+        log.info("Requesting message history for public session: {}", sessionId);
+        
+        MessageHistoryResponse response = messageService.getPublicSessionMessages(sessionId);
+        return ResponseEntity.ok(response);
+    }
 }

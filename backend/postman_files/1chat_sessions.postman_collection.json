@@ -289,11 +289,241 @@
 				"description": "Soft delete a session. Status changes to DELETED. Returns 204 No Content."
 			},
 			"response": []
+		},
+		{
+			"name": "10. Search Sessions by Title",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{jwt_token}}"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/v1/sessions/search?q=chat&page=0&size=10",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"sessions",
+						"search"
+					],
+					"query": [
+						{
+							"key": "q",
+							"value": "chat",
+							"description": "Search term to find in session titles"
+						},
+						{
+							"key": "page",
+							"value": "0"
+						},
+						{
+							"key": "size",
+							"value": "10"
+						}
+					]
+				},
+				"description": "Search user's chat sessions by title. Case-insensitive partial matching."
+			},
+			"response": []
+		},
+		{
+			"name": "11. Toggle Session Visibility (Make Public/Private)",
+			"request": {
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{jwt_token}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"isPublic\": true\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/v1/sessions/{{session_id}}/visibility",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"sessions",
+						"{{session_id}}",
+						"visibility"
+					]
+				},
+				"description": "Toggle session visibility. Set isPublic to true to make session public, false to make it private."
+			},
+			"response": []
+		},
+		{
+			"name": "12. Get All Public Sessions",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/v1/sessions/public?page=0&size=10",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"sessions",
+						"public"
+					],
+					"query": [
+						{
+							"key": "page",
+							"value": "0"
+						},
+						{
+							"key": "size",
+							"value": "10"
+						}
+					]
+				},
+				"description": "Get all public chat sessions. No authentication required."
+			},
+			"response": []
+		},
+		{
+			"name": "13. Get Specific Public Session",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"if (pm.response.code === 200) {",
+							"    var jsonData = pm.response.json();",
+							"    if (jsonData.sessionId) {",
+							"        pm.collectionVariables.set(\"public_session_id\", jsonData.sessionId);",
+							"        console.log(\"Public Session ID saved:\", jsonData.sessionId);",
+							"    }",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/v1/sessions/public/{{public_session_id}}",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"sessions",
+						"public",
+						"{{public_session_id}}"
+					]
+				},
+				"description": "Get details of a specific public session. No authentication required. You can use a session_id from 'Get All Public Sessions' request."
+			},
+			"response": []
+		},
+		{
+			"name": "14. Copy Public Session",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"if (pm.response.code === 201) {",
+							"    var jsonData = pm.response.json();",
+							"    if (jsonData.sessionId) {",
+							"        pm.collectionVariables.set(\"copied_session_id\", jsonData.sessionId);",
+							"        console.log(\"Copied Session ID saved:\", jsonData.sessionId);",
+							"    }",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{jwt_token}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"newTitle\": \"My Copy of Public Chat\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/v1/sessions/public/{{public_session_id}}/copy",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"sessions",
+						"public",
+						"{{public_session_id}}",
+						"copy"
+					]
+				},
+				"description": "Copy a public session to your own sessions. All messages are copied. The copied session is private by default. The newTitle field is optional."
+			},
+			"response": []
+		},
+		{
+			"name": "15. Get Public Session Messages",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/v1/sessions/public/{{public_session_id}}/messages",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"sessions",
+						"public",
+						"{{public_session_id}}",
+						"messages"
+					]
+				},
+				"description": "Get all messages (conversation history) from a public session. No authentication required."
+			},
+			"response": []
 		}
 	],
 	"variable": [
 		{
 			"key": "session_id",
+			"value": ""
+		},
+		{
+			"key": "public_session_id",
+			"value": ""
+		},
+		{
+			"key": "copied_session_id",
 			"value": ""
 		}
 	]

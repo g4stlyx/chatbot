@@ -456,6 +456,29 @@
 				"description": "Regenerate the last assistant response using a specific model"
 			},
 			"response": []
+		},
+		{
+			"name": "6. Get Public Session Messages",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/api/v1/sessions/public/{{public_session_id}}/messages",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"v1",
+						"sessions",
+						"public",
+						"{{public_session_id}}",
+						"messages"
+					]
+				},
+				"description": "Get all messages in a public chat session. No authentication required. Use a public session ID from the chat sessions collection."
+			},
+			"response": []
 		}
 	],
 	"variable": [

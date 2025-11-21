@@ -67,6 +67,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers("/api/v1/health/**").permitAll()
 
+                        // Public chat sessions
+                        .requestMatchers("/api/v1/sessions/public/**").permitAll()
+
                         // Actuator endpoints (should be secured in production)
                         .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers("/actuator/**").hasRole("ADMIN")

@@ -67,6 +67,71 @@ public class ChatSessionController {
         List<SessionResponse> response = chatSessionService.getUserActiveSessions(userId);
         return ResponseEntity.ok(response);
     }
+
+    /**
+     * Get all public sessions (no authentication required)
+     * GET /api/v1/sessions/public?page=0&size=10
+     */
+    @GetMapping("/public")
+    public ResponseEntity<SessionListResponse> getPublicSessions(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        
+        log.info("Fetching public sessions (page: {}, size: {})", page, size);
+        
+        SessionListResponse response = chatSessionService.getPublicSessions(page, size);
+        return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * Get a specific public session (no authentication required)
+     * GET /api/v1/sessions/public/{sessionId}
+     */
+    @GetMapping("/public/{sessionId}")
+    public ResponseEntity<SessionResponse> getPublicSession(
+            @PathVariable String sessionId) {
+        
+        log.info("Fetching public session {}", sessionId);
+        
+        SessionResponse response = chatSessionService.getPublicSession(sessionId);
+        return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * Copy a public session to user's own sessions
+     * POST /api/v1/sessions/public/{sessionId}/copy
+     */
+    @PostMapping("/public/{sessionId}/copy")
+    public ResponseEntity<SessionResponse> copyPublicSession(
+            @PathVariable String sessionId,
+            @Valid @RequestBody(required = false) CopySessionRequest request,
+            Authentication authentication) {
+        
+        Long userId = (Long) authentication.getDetails();
+        log.info("User {} copying public session {}", userId, sessionId);
+        
+        String newTitle = request != null ? request.getNewTitle() : null;
+        SessionResponse response = chatSessionService.copyPublicSession(sessionId, userId, newTitle);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    /**
+     * Search sessions by title
+     * GET /api/v1/sessions/search?q={searchTerm}&page=0&size=10
+     */
+    @GetMapping("/search")
+    public ResponseEntity<SessionListResponse> searchSessions(
+            @RequestParam("q") String searchTerm,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            Authentication authentication) {
+        
+        Long userId = (Long) authentication.getDetails();
+        log.info("User {} searching sessions with term: {}", userId, searchTerm);
+        
+        SessionListResponse response = chatSessionService.searchSessionsByTitle(userId, searchTerm, page, size);
+        return ResponseEntity.ok(response);
+    }
     
     /**
      * Get a specific session by ID
@@ -164,4 +229,24 @@ public class ChatSessionController {
         SessionResponse response = chatSessionService.activateSession(sessionId, userId);
         return ResponseEntity.ok(response);
     }
+    
+    /**
+     * Toggle session visibility (public/private)
+     * PATCH /api/v1/sessions/{sessionId}/visibility
+     */
+    @PatchMapping("/{sessionId}/visibility")
+    public ResponseEntity<SessionResponse> toggleSessionVisibility(
+            @PathVariable String sessionId,
+            @Valid @RequestBody ToggleVisibilityRequest request,
+            Authentication authentication) {
+        
+        Long userId = (Long) authentication.getDetails();
+        log.info("User {} toggling visibility for session {} to public={}", 
+                userId, sessionId, request.getIsPublic());
+        
+        SessionResponse response = chatSessionService.toggleSessionVisibility(
+                sessionId, userId, request.getIsPublic());
+        return ResponseEntity.ok(response);
+    }
+
 }

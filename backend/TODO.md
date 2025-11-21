@@ -36,9 +36,9 @@
 * ✅ verification ve password reset tokenleri kaydediliyor mu test et
 * log the auth. errors like 403 or 401 (or even 404s). who tried (if req. has a token), ip, etc. info (again with async processing)
 * filtering everywhere (e.g by level for admin management, by emailVerified/active/lockedUntil for user management)
-* title ile chat arama (hem BE hem FE'e)
-* 🔄 chat sharing? (is_public) - Basic support added, needs testing
-    * user a accessing user b's private chat should be tested too
+* ✅ searching chats by title
+* ✅ chat sharing? (toggle is_public)
+    * ✅ user a accessing user b's private chat should be tested too
 * projects kısmı, chatleri gruplandırmak için (gptdeki gibi)
 * hazır prompt şablonları, kullanıcı ekleyebilir veya admin panelden yönetilecek şekilde olabilir (tuğberk hocanın repodaki gibi)
     * gemini'daki gem'ler tarzı bir şey olabilir

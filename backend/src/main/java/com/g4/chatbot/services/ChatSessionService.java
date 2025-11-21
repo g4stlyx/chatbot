@@ -4,7 +4,9 @@ import com.g4.chatbot.dto.session.*;
 import com.g4.chatbot.exception.ResourceNotFoundException;
 import com.g4.chatbot.exception.UnauthorizedException;
 import com.g4.chatbot.models.ChatSession;
+import com.g4.chatbot.models.Message;
 import com.g4.chatbot.repos.ChatSessionRepository;
+import com.g4.chatbot.repos.MessageRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -24,6 +26,9 @@ public class ChatSessionService {
     
     @Autowired
     private ChatSessionRepository chatSessionRepository;
+    
+    @Autowired
+    private MessageRepository messageRepository;
     
     /**
      * Create a new chat session for a user
@@ -235,5 +240,148 @@ public class ChatSessionService {
         
         log.info("Session {} activated successfully", sessionId);
         return SessionResponse.fromEntity(activatedSession);
+    }
+    
+    /**
+     * Search user's sessions by title
+     */
+    public SessionListResponse searchSessionsByTitle(Long userId, String searchTerm, int page, int size) {
+        log.info("Searching sessions for user {} with term: {}", userId, searchTerm);
+        
+        Pageable pageable = PageRequest.of(page, size);
+        Page<ChatSession> sessionPage = chatSessionRepository.searchByUserIdAndTitle(userId, searchTerm, pageable);
+        
+        List<SessionResponse> sessions = sessionPage.getContent().stream()
+                .map(SessionResponse::fromEntity)
+                .collect(Collectors.toList());
+        
+        return new SessionListResponse(
+                sessions,
+                sessionPage.getTotalPages(),
+                sessionPage.getTotalElements(),
+                page,
+                size
+        );
+    }
+    
+    /**
+     * Toggle session public/private status
+     */
+    @Transactional
+    public SessionResponse toggleSessionVisibility(String sessionId, Long userId, Boolean isPublic) {
+        log.info("Toggling visibility for session {} to public={}", sessionId, isPublic);
+        
+        ChatSession session = chatSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Session not found with id: " + sessionId));
+        
+        // Verify the session belongs to the user
+        if (!session.getUserId().equals(userId)) {
+            log.warn("User {} attempted to change visibility of session {} owned by user {}", 
+                    userId, sessionId, session.getUserId());
+            throw new UnauthorizedException("You don't have permission to modify this session");
+        }
+        
+        session.setIsPublic(isPublic);
+        ChatSession updatedSession = chatSessionRepository.save(session);
+        
+        log.info("Session {} visibility updated to public={}", sessionId, isPublic);
+        return SessionResponse.fromEntity(updatedSession);
+    }
+    
+    /**
+     * Get all public sessions with pagination
+     */
+    public SessionListResponse getPublicSessions(int page, int size) {
+        log.info("Fetching public sessions (page: {}, size: {})", page, size);
+        
+        Pageable pageable = PageRequest.of(page, size);
+        Page<ChatSession> sessionPage = chatSessionRepository.findPublicSessions(pageable);
+        
+        List<SessionResponse> sessions = sessionPage.getContent().stream()
+                .map(SessionResponse::fromEntity)
+                .collect(Collectors.toList());
+        
+        return new SessionListResponse(
+                sessions,
+                sessionPage.getTotalPages(),
+                sessionPage.getTotalElements(),
+                page,
+                size
+        );
+    }
+    
+    /**
+     * Get a public session by ID (anyone can view)
+     */
+    public SessionResponse getPublicSession(String sessionId) {
+        log.info("Fetching public session {}", sessionId);
+        
+        ChatSession session = chatSessionRepository.findPublicSessionById(sessionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Public session not found with id: " + sessionId));
+        
+        // Update last accessed time
+        session.setLastAccessedAt(LocalDateTime.now());
+        chatSessionRepository.save(session);
+        
+        return SessionResponse.fromEntity(session);
+    }
+    
+    /**
+     * Copy a public session to user's own sessions
+     */
+    @Transactional
+    public SessionResponse copyPublicSession(String sessionId, Long userId, String newTitle) {
+        log.info("User {} copying public session {}", userId, sessionId);
+        
+        // Find the public session
+        ChatSession publicSession = chatSessionRepository.findPublicSessionById(sessionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Public session not found with id: " + sessionId));
+        
+        // Create a new session for the user
+        ChatSession newSession = new ChatSession();
+        newSession.setSessionId(UUID.randomUUID().toString());
+        newSession.setUserId(userId);
+        newSession.setTitle(newTitle != null ? newTitle : "Copy of " + publicSession.getTitle());
+        newSession.setModel(publicSession.getModel());
+        newSession.setIsPublic(false); // Copied sessions are private by default
+        newSession.setStatus(ChatSession.SessionStatus.ACTIVE);
+        newSession.setMessageCount(0); // Will be updated after copying messages
+        newSession.setTokenUsage(0L); // Will be updated after copying messages
+        
+        ChatSession savedSession = chatSessionRepository.save(newSession);
+        
+        // Copy all messages from the public session
+        List<Message> publicMessages = messageRepository.findBySessionIdOrderByTimestampAsc(sessionId);
+        
+        int messageCount = 0;
+        long totalTokens = 0L;
+        
+        for (Message originalMessage : publicMessages) {
+            Message newMessage = new Message();
+            newMessage.setSessionId(savedSession.getSessionId());
+            newMessage.setRole(originalMessage.getRole());
+            newMessage.setContent(originalMessage.getContent());
+            newMessage.setTokenCount(originalMessage.getTokenCount());
+            newMessage.setModel(originalMessage.getModel());
+            newMessage.setMetadata(originalMessage.getMetadata());
+            newMessage.setIsFlagged(false); // Don't copy flag status
+            
+            messageRepository.save(newMessage);
+            
+            messageCount++;
+            if (originalMessage.getTokenCount() != null) {
+                totalTokens += originalMessage.getTokenCount();
+            }
+        }
+        
+        // Update the new session's counts
+        savedSession.setMessageCount(messageCount);
+        savedSession.setTokenUsage(totalTokens);
+        chatSessionRepository.save(savedSession);
+        
+        log.info("Public session {} copied to new session {} with {} messages", 
+                sessionId, savedSession.getSessionId(), messageCount);
+        
+        return SessionResponse.fromEntity(savedSession);
     }
 }

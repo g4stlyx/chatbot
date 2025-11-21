@@ -377,4 +377,31 @@ public class MessageService {
             chatSessionRepository.save(session);
         }
     }
+    
+    /**
+     * Get all messages for a public session (no authentication required)
+     */
+    public MessageHistoryResponse getPublicSessionMessages(String sessionId) {
+        log.info("Fetching message history for public session: {}", sessionId);
+        
+        // Verify session is public
+        ChatSession session = chatSessionRepository.findPublicSessionById(sessionId)
+                .orElseThrow(() -> new RuntimeException("Public session not found with id: " + sessionId));
+        
+        List<Message> messages = messageRepository.findBySessionIdOrderByTimestampAsc(sessionId);
+        
+        List<MessageResponse> messageResponses = messages.stream()
+                .map(MessageResponse::from)
+                .collect(Collectors.toList());
+        
+        // Update last accessed time
+        session.setLastAccessedAt(LocalDateTime.now());
+        chatSessionRepository.save(session);
+        
+        return MessageHistoryResponse.builder()
+                .sessionId(sessionId)
+                .totalMessages(messages.size())
+                .messages(messageResponses)
+                .build();
+    }
 }
