@@ -21,6 +21,9 @@ public class ChatSession {
     @Column(name = "user_id", nullable = false)
     private Long userId;
     
+    @Column(name = "project_id")
+    private Long projectId;
+    
     @Column(name = "title", length = 255)
     private String title;
     
@@ -68,6 +71,11 @@ public class ChatSession {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", insertable = false, updatable = false)
     private User user;
+    
+    // Reference to Project entity (optional)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id", insertable = false, updatable = false)
+    private Project project;
     
     @PrePersist
     protected void onCreate() {

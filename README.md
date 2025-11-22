@@ -34,15 +34,17 @@ A production-ready, enterprise-grade chatbot application built with Spring Boot 
 - 🌐 **Public Chat Sharing** - Share chat sessions publicly and copy others' conversations
 - 💾 **Complete Message CRUD** - Edit, delete, and regenerate AI responses
 - 👥 **User Profiles** - Profile management with password change functionality
+- 📁 **Project Organization** - Group chat sessions into customizable projects with colors/icons
 
 ### Advanced Features
-- 🛡️ **Prompt Injection Protection** - Multi-layer security with pattern detection and logging
+- 🛡️ **Prompt Injection Protection** - Multi-layer security with input/output filtering and pattern detection
 - ⚡ **Rate Limiting** - Email verification and API endpoint protection
 - 📊 **Admin Dashboard** - Comprehensive admin panel with activity logging
 - 🔒 **Role-Based Access Control** - Multi-level admin hierarchy (Level 0-2)
 - 📧 **Email Notifications** - Security alerts and verification emails
 - 🔄 **Message Regeneration** - Re-generate AI responses with different models
 - 🎯 **Context Management** - Smart context window limiting (last 20 messages)
+- 🚨 **Auth Error Logging** - Track failed authentication attempts with IP and user agent
 
 ### Security & Monitoring
 - 🔐 **Argon2 Password Hashing** - Industry-standard password security
@@ -50,6 +52,8 @@ A production-ready, enterprise-grade chatbot application built with Spring Boot 
 - 📋 **Admin Activity Logging** - 38 operations logged across 6 services
 - 🔍 **Token Management** - Secure handling of verification and reset tokens
 - 🌐 **CORS Configuration** - Secure cross-origin resource sharing
+- 🛡️ **Output Filtering** - Validates AI responses to prevent system prompt leakage
+- 🔒 **Auth Error Tracking** - Monitor and manage failed authentication attempts
 
 ## 🏗️ Architecture
 
@@ -264,6 +268,20 @@ GET    /api/v1/sessions/public                 # Get public sessions
 POST   /api/v1/sessions/public/{id}/copy       # Copy public session
 ```
 
+#### Projects
+```
+GET    /api/v1/projects                        # Get user's projects
+POST   /api/v1/projects                        # Create project
+GET    /api/v1/projects/{id}                   # Get project
+PUT    /api/v1/projects/{id}                   # Update project
+DELETE /api/v1/projects/{id}                   # Delete project
+GET    /api/v1/projects/search?q={term}        # Search projects
+POST   /api/v1/projects/{id}/archive           # Archive project
+POST   /api/v1/projects/{id}/unarchive         # Unarchive project
+POST   /api/v1/projects/{id}/sessions/{sid}    # Add session to project
+DELETE /api/v1/projects/{id}/sessions/{sid}    # Remove session from project
+```
+
 #### Messages
 ```
 GET    /api/v1/sessions/{id}/messages          # Get messages
@@ -283,10 +301,11 @@ POST /api/v1/chat/send                          # Send message (non-streaming)
 
 ### 1. Prompt Injection Protection
 
-Multi-layered defense system:
+Multi-layered defense system with input and output filtering:
 - ✅ System prompt enforcement (role and purpose definition)
 - ✅ Input validation and sanitization
 - ✅ Pattern detection (malicious keywords/phrases)
+- ✅ Output filtering (prevents system prompt leakage and character breaking)
 - ✅ Context window management (last 20 messages)
 - ✅ Database logging with severity levels
 - ✅ Email alerts to admins (threshold: 3+ attempts)
@@ -338,11 +357,13 @@ Multi-layered defense system:
 - Flag/unflag inappropriate content
 - Access message history
 
-#### System Monitoring (10 operations)
+#### System Monitoring & Security
 - View admin activity logs (38 operations tracked)
 - Manage verification tokens
 - Manage password reset tokens
 - View prompt injection logs
+- View authentication error logs (401, 403, 404)
+- Monitor failed login attempts
 - Bulk token cleanup
 
 ### Activity Logging
@@ -358,13 +379,15 @@ All admin operations are logged with:
 
 Comprehensive documentation available in `/backend/docs/`:
 
-- `CHAT_SEARCH_AND_SHARING_FEATURES.md` - New features guide
-- `ADMIN_PANEL_COMPLETE_SUMMARY.md` - Admin panel documentation
+- `CHAT_SEARCH_AND_SHARING_FEATURES.md` - Search and public sharing features
+- `ADMIN_PANEL_COMPLETE_SUMMARY.md` - Complete admin panel documentation
 - `ADMIN_ACTIVITY_LOGGING_FINAL_SUMMARY.md` - Activity logging guide
-- `PHASE1_COMPLETE.md` - Phase 1 implementation
-- `PHASE2_IMPLEMENTATION_SUMMARY.md` - Phase 2 features
-- `PROFILE_FEATURE_README.md` - Profile management
-- And 20+ more detailed guides
+- `PHASE1_COMPLETE.md` - Phase 1 implementation details
+- `PHASE2_IMPLEMENTATION_SUMMARY.md` - Phase 2 features (Message CRUD)
+- `PROFILE_FEATURE_README.md` - Profile management guide
+- `EMAIL_VERIFICATION_RATE_LIMITING.md` - Rate limiting implementation
+- `CONNECTION_LEAK_FIX.md` - Database optimization
+- And 25+ more detailed technical guides
 
 ## 🧪 Testing
 
@@ -427,18 +450,23 @@ Contributions are welcome! Please follow these steps:
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-## 📝 TODO
+## 📝 TODO & Roadmap
 
-See `backend/TODO.md` for the complete task list and roadmap.
+See `backend/TODO.md` for the complete task list.
+
+### Recently Completed ✅
+- ✅ Project grouping for chat sessions (with colors/icons)
+- ✅ Output filtering for AI responses
+- ✅ Authentication error logging (401, 403, 404)
+- ✅ Chat search by title
+- ✅ Public chat sharing
+- ✅ Prompt injection protection (8-layer defense)
 
 ### Upcoming Features
-- [ ] Project grouping for chat sessions
-- [ ] Ready-made prompt templates
+- [ ] Ready-made prompt templates (user-created & admin-managed)
 - [ ] AI persona system (like Gemini Gems)
-- [ ] Output filtering for AI responses
-- [ ] Advanced filtering options
-- [ ] Authentication error logging (401, 403, 404)
-- [ ] OpenAI integration option
+- [ ] OpenAI/Claude/Gemini integration options
+- [ ] Streaming responses in frontend
 
 ## 📄 License
 

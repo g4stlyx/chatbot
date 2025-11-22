@@ -74,4 +74,11 @@ public interface ChatSessionRepository extends JpaRepository<ChatSession, String
     // Find public session by ID
     @Query("SELECT cs FROM ChatSession cs WHERE cs.sessionId = :sessionId AND cs.isPublic = true AND cs.status != 'DELETED'")
     java.util.Optional<ChatSession> findPublicSessionById(@Param("sessionId") String sessionId);
+    
+    // Project-related queries
+    List<ChatSession> findByProjectId(Long projectId);
+    
+    Page<ChatSession> findByUserIdAndProjectId(Long userId, Long projectId, Pageable pageable);
+    
+    Page<ChatSession> findByUserIdAndProjectIdIsNull(Long userId, Pageable pageable);
 }
