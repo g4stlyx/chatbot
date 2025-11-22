@@ -1596,6 +1596,264 @@
 					"response": []
 				}
 			]
+		},
+		{
+			"name": "Auth Error Logs",
+			"item": [
+				{
+					"name": "Get All Auth Error Logs",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/auth-error-logs?page=0&size=20&sortBy=createdAt&sortDirection=desc",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"admin",
+								"auth-error-logs"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "20"
+								},
+								{
+									"key": "sortBy",
+									"value": "createdAt"
+								},
+								{
+									"key": "sortDirection",
+									"value": "desc"
+								},
+								{
+									"key": "userId",
+									"value": "",
+									"disabled": true,
+									"description": "Filter by user ID"
+								},
+								{
+									"key": "errorType",
+									"value": "",
+									"disabled": true,
+									"description": "Filter by error type: UNAUTHORIZED_401, FORBIDDEN_403, NOT_FOUND_404, INVALID_TOKEN, ACCESS_DENIED"
+								},
+								{
+									"key": "ipAddress",
+									"value": "",
+									"disabled": true,
+									"description": "Filter by IP address"
+								}
+							]
+						},
+						"description": "Get paginated list of all authentication error logs with optional filters"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Auth Error Log by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/auth-error-logs/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"admin",
+								"auth-error-logs",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1",
+									"description": "Auth error log ID"
+								}
+							]
+						},
+						"description": "Get detailed information about a specific authentication error log"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Auth Errors by User ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/auth-error-logs/user/:userId?page=0&size=20",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"admin",
+								"auth-error-logs",
+								"user",
+								":userId"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "20"
+								}
+							],
+							"variable": [
+								{
+									"key": "userId",
+									"value": "{{user_id}}",
+									"description": "User ID to filter logs"
+								}
+							]
+						},
+						"description": "Get all authentication error logs for a specific user"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Auth Errors by IP Address",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/auth-error-logs/ip/:ipAddress?page=0&size=20",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"admin",
+								"auth-error-logs",
+								"ip",
+								":ipAddress"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "20"
+								}
+							],
+							"variable": [
+								{
+									"key": "ipAddress",
+									"value": "192.168.1.100",
+									"description": "IP address to filter logs"
+								}
+							]
+						},
+						"description": "Get all authentication error logs from a specific IP address (useful for detecting brute force attacks)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Auth Error Statistics",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/auth-error-logs/statistics",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"admin",
+								"auth-error-logs",
+								"statistics"
+							]
+						},
+						"description": "Get comprehensive statistics including error type distribution, daily trends (last 30 days), and suspicious IPs (>5 errors in 24h)"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Auth Error Log (Level 0 Only)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/auth-error-logs/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"admin",
+								"auth-error-logs",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1",
+									"description": "Auth error log ID to delete"
+								}
+							]
+						},
+						"description": "Delete an authentication error log. Only Level 0 admins can perform this action."
+					},
+					"response": []
+				}
+			]
 		}
 	],
 	"variable": [

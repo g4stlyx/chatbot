@@ -29,6 +29,9 @@ public class SecurityConfig {
 
     @Autowired
     private JwtAuthEntryPoint jwtAuthEntryPoint;
+    
+    @Autowired
+    private com.g4.chatbot.security.CustomAccessDeniedHandler customAccessDeniedHandler;
 
     @Autowired
     private org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource;
@@ -44,7 +47,9 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthEntryPoint))
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(jwtAuthEntryPoint)
+                        .accessDeniedHandler(customAccessDeniedHandler))
 
                 // Security Headers
                 .headers(headers -> headers

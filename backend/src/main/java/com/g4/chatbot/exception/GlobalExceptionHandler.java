@@ -1,12 +1,16 @@
 package com.g4.chatbot.exception;
 
+import com.g4.chatbot.security.JwtUtils;
+import com.g4.chatbot.services.AuthErrorLogService;
 import com.g4.chatbot.services.SecurityLogService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -24,8 +28,14 @@ public class GlobalExceptionHandler {
     @Autowired
     private SecurityLogService securityLogService;
     
+    @Autowired
+    private AuthErrorLogService authErrorLogService;
+    
+    @Autowired
+    private JwtUtils jwtUtils;
+    
     /**
-     * Handle Resource Not Found Exception
+     * Handle Resource Not Found Exception (404)
      */
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleResourceNotFoundException(
@@ -33,6 +43,18 @@ public class GlobalExceptionHandler {
             HttpServletRequest request) {
         
         log.error("Resource not found: {}", ex.getMessage());
+        
+        // Log 404 error with user info if available
+        UserInfo userInfo = extractUserInfo(request);
+        authErrorLogService.log404(
+            userInfo.userId,
+            userInfo.username,
+            getClientIP(request),
+            request.getHeader("User-Agent"),
+            request.getRequestURI(),
+            request.getMethod(),
+            ex.getMessage()
+        );
         
         ErrorResponse errorResponse = new ErrorResponse(
                 HttpStatus.NOT_FOUND.value(),
@@ -46,7 +68,7 @@ public class GlobalExceptionHandler {
     }
     
     /**
-     * Handle Unauthorized Exception
+     * Handle Unauthorized Exception (403 - Forbidden)
      */
     @ExceptionHandler(UnauthorizedException.class)
     public ResponseEntity<ErrorResponse> handleUnauthorizedException(
@@ -54,6 +76,19 @@ public class GlobalExceptionHandler {
             HttpServletRequest request) {
         
         log.error("Unauthorized access: {}", ex.getMessage());
+        
+        // Log 403 error
+        UserInfo userInfo = extractUserInfo(request);
+        authErrorLogService.log403(
+            userInfo.userId,
+            userInfo.username,
+            getClientIP(request),
+            request.getHeader("User-Agent"),
+            request.getRequestURI(),
+            request.getMethod(),
+            ex.getMessage(),
+            "Access to resource denied"
+        );
         
         ErrorResponse errorResponse = new ErrorResponse(
                 HttpStatus.FORBIDDEN.value(),
@@ -64,6 +99,70 @@ public class GlobalExceptionHandler {
         );
         
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
+    }
+    
+    /**
+     * Handle Spring Security Access Denied Exception (403)
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDeniedException(
+            AccessDeniedException ex,
+            HttpServletRequest request) {
+        
+        log.error("Access denied: {}", ex.getMessage());
+        
+        // Log 403 error
+        UserInfo userInfo = extractUserInfo(request);
+        authErrorLogService.log403(
+            userInfo.userId,
+            userInfo.username,
+            getClientIP(request),
+            request.getHeader("User-Agent"),
+            request.getRequestURI(),
+            request.getMethod(),
+            ex.getMessage(),
+            "Insufficient permissions"
+        );
+        
+        ErrorResponse errorResponse = new ErrorResponse(
+                HttpStatus.FORBIDDEN.value(),
+                "Forbidden",
+                "Access denied. You do not have permission to access this resource.",
+                request.getRequestURI(),
+                LocalDateTime.now()
+        );
+        
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
+    }
+    
+    /**
+     * Handle Spring Security Authentication Exception (401)
+     */
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ErrorResponse> handleAuthenticationException(
+            AuthenticationException ex,
+            HttpServletRequest request) {
+        
+        log.error("Authentication failed: {}", ex.getMessage());
+        
+        // Log 401 error
+        authErrorLogService.log401(
+            getClientIP(request),
+            request.getHeader("User-Agent"),
+            request.getRequestURI(),
+            request.getMethod(),
+            ex.getMessage()
+        );
+        
+        ErrorResponse errorResponse = new ErrorResponse(
+                HttpStatus.UNAUTHORIZED.value(),
+                "Unauthorized",
+                "Authentication is required to access this resource.",
+                request.getRequestURI(),
+                LocalDateTime.now()
+        );
+        
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
     }
     
     /**
@@ -152,7 +251,7 @@ public class GlobalExceptionHandler {
     }
     
     /**
-     * Handle Generic Exceptions
+     * Handle Generic Exceptions (500 errors)
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(
@@ -160,6 +259,24 @@ public class GlobalExceptionHandler {
             HttpServletRequest request) {
         
         log.error("Internal server error: ", ex);
+        
+        // Log 500 error
+        try {
+            UserInfo userInfo = extractUserInfo(request);
+            authErrorLogService.logAuthError(
+                com.g4.chatbot.models.AuthenticationErrorLog.ErrorType.ACCESS_DENIED,
+                userInfo.userId,
+                userInfo.username,
+                getClientIP(request),
+                request.getHeader("User-Agent"),
+                request.getRequestURI(),
+                request.getMethod(),
+                "Internal Server Error: " + ex.getClass().getSimpleName() + " - " + ex.getMessage(),
+                "500 Internal Server Error"
+            );
+        } catch (Exception logEx) {
+            log.error("Failed to log 500 error: {}", logEx.getMessage());
+        }
         
         ErrorResponse errorResponse = new ErrorResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
@@ -196,5 +313,50 @@ public class GlobalExceptionHandler {
             log.debug("Could not extract user ID from security context", e);
         }
         return null;
+    }
+    
+    /**
+     * Helper method to extract user info from request (JWT token + security context)
+     */
+    private UserInfo extractUserInfo(HttpServletRequest request) {
+        UserInfo userInfo = new UserInfo();
+        
+        try {
+            // Try to get from security context first
+            userInfo.userId = getCurrentUserId();
+            
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication != null && authentication.getPrincipal() instanceof String) {
+                userInfo.username = (String) authentication.getPrincipal();
+            }
+            
+            // Try to extract from JWT token if available
+            String authHeader = request.getHeader("Authorization");
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                try {
+                    String token = authHeader.substring(7);
+                    if (userInfo.username == null) {
+                        userInfo.username = jwtUtils.extractUsername(token);
+                    }
+                    if (userInfo.userId == null) {
+                        userInfo.userId = jwtUtils.extractUserIdAsLong(token);
+                    }
+                } catch (Exception e) {
+                    log.debug("Could not extract user info from JWT token", e);
+                }
+            }
+        } catch (Exception e) {
+            log.debug("Error extracting user info", e);
+        }
+        
+        return userInfo;
+    }
+    
+    /**
+     * Inner class to hold user information
+     */
+    private static class UserInfo {
+        Long userId;
+        String username;
     }
 }

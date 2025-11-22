@@ -34,7 +34,8 @@
     * ✅ READ operations logged for all admin data access including sensitive tokens and activity logs
     * ✅ Total: 38 operations logged (23 CUD + 15 READ)
 * ✅ verification ve password reset tokenleri kaydediliyor mu test et
-* log the auth. errors like 403 or 401 (or even 404s). who tried (if req. has a token), ip, etc. info (again with async processing)
+* ✅ log the auth. errors like 403 or 401 (or even 404s). who tried (if req. has a token), ip, etc. info (again with async processing)
+    * ✅ admin panel endpoints to manage authErrorLogs 
 * filtering everywhere (e.g by level for admin management, by emailVerified/active/lockedUntil for user management)
 * ✅ searching chats by title
 * ✅ chat sharing? (toggle is_public)
