@@ -50,6 +50,21 @@ export const adminAuthAPI = {
   getCurrentAdmin: () => adminApi.get("/api/v1/admin/profile"),
 };
 
+// Admin 2FA API
+export const admin2FAAPI = {
+  // Setup 2FA - generates secret and QR code
+  setup: () => adminApi.post("/api/v1/admin/2fa/setup"),
+  // Verify and enable 2FA with code from authenticator app
+  verify: (code) => adminApi.post("/api/v1/admin/2fa/verify", { code }),
+  // Check 2FA status
+  getStatus: () => adminApi.get("/api/v1/admin/2fa/status"),
+  // Disable 2FA (requires current code)
+  disable: (code) => adminApi.post("/api/v1/admin/2fa/disable", { code }),
+  // Verify 2FA code during login (no auth required)
+  verifyLogin: (username, code) =>
+    adminApi.post("/api/v1/admin/2fa/verify-login", { username, code }),
+};
+
 // Admin Profile API
 export const adminProfileAPI = {
   getProfile: () => adminApi.get("/api/v1/admin/profile"),

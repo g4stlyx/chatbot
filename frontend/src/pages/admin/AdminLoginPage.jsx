@@ -8,10 +8,13 @@ const AdminLoginPage = () => {
     username: "",
     password: "",
   });
+  const [twoFACode, setTwoFACode] = useState("");
+  const [requires2FA, setRequires2FA] = useState(false);
+  const [twoFAUsername, setTwoFAUsername] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const { login, isAuthenticated } = useAdmin();
+  const { login, verify2FA, isAuthenticated } = useAdmin();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -31,12 +34,51 @@ const AdminLoginPage = () => {
     setError("");
   };
 
+  const handleTwoFACodeChange = (e) => {
+    // Only allow numbers and limit to 6 digits
+    const value = e.target.value.replace(/\D/g, "").slice(0, 6);
+    setTwoFACode(value);
+    setError("");
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
 
-    const result = await login(formData);
+    try {
+      const result = await login(formData);
+
+      if (result.success) {
+        const from = location.state?.from?.pathname || "/admin/dashboard";
+        navigate(from, { replace: true });
+      } else if (result.requires2FA || result.error === "2FA verification required") {
+        // 2FA is required, show 2FA input
+        setRequires2FA(true);
+        setTwoFAUsername(result.username || formData.username);
+        setError(""); // Clear any error
+      } else {
+        setError(result.error || result.message || "Giriş başarısız");
+      }
+    } catch (err) {
+      setError("Bir hata oluştu. Lütfen tekrar deneyin.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handle2FASubmit = async (e) => {
+    e.preventDefault();
+    
+    if (twoFACode.length !== 6) {
+      setError("Lütfen 6 haneli doğrulama kodunu girin");
+      return;
+    }
+
+    setIsLoading(true);
+    setError("");
+
+    const result = await verify2FA(twoFAUsername, twoFACode);
 
     if (result.success) {
       const from = location.state?.from?.pathname || "/admin/dashboard";
@@ -46,6 +88,13 @@ const AdminLoginPage = () => {
     }
 
     setIsLoading(false);
+  };
+
+  const handleBack = () => {
+    setRequires2FA(false);
+    setTwoFACode("");
+    setTwoFAUsername("");
+    setError("");
   };
 
   return (
@@ -64,68 +113,132 @@ const AdminLoginPage = () => {
             </svg>
           </div>
           <h1>Admin Panel</h1>
-          <p>Yönetim paneline erişmek için giriş yapın</p>
+          <p>
+            {requires2FA
+              ? "İki faktörlü doğrulama gerekiyor"
+              : "Yönetim paneline erişmek için giriş yapın"}
+          </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="admin-login-form">
-          {error && (
-            <div className="admin-error-message">
+        {error && (
+          <div className="admin-error-message">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              width="20"
+              height="20"
+            >
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+            </svg>
+            <span>{error}</span>
+          </div>
+        )}
+
+        {!requires2FA ? (
+          <form onSubmit={handleSubmit} className="admin-login-form">
+            <div className="admin-form-group">
+              <label htmlFor="username">Kullanıcı Adı</label>
+              <input
+                type="text"
+                id="username"
+                name="username"
+                value={formData.username}
+                onChange={handleChange}
+                placeholder="Admin kullanıcı adınızı girin"
+                required
+                autoComplete="username"
+              />
+            </div>
+
+            <div className="admin-form-group">
+              <label htmlFor="password">Şifre</label>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="Şifrenizi girin"
+                required
+                autoComplete="current-password"
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="admin-login-button"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <span className="admin-button-spinner"></span>
+                  Giriş yapılıyor...
+                </>
+              ) : (
+                "Giriş Yap"
+              )}
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handle2FASubmit} className="admin-login-form">
+            <div className="admin-2fa-info">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 24 24"
                 fill="currentColor"
-                width="20"
-                height="20"
+                width="24"
+                height="24"
               >
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+                <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
               </svg>
-              <span>{error}</span>
+              <span>
+                Authenticator uygulamanızdan 6 haneli doğrulama kodunu girin
+              </span>
             </div>
-          )}
 
-          <div className="admin-form-group">
-            <label htmlFor="username">Kullanıcı Adı</label>
-            <input
-              type="text"
-              id="username"
-              name="username"
-              value={formData.username}
-              onChange={handleChange}
-              placeholder="Admin kullanıcı adınızı girin"
-              required
-              autoComplete="username"
-            />
-          </div>
+            <div className="admin-form-group">
+              <label htmlFor="twoFACode">Doğrulama Kodu</label>
+              <input
+                type="text"
+                id="twoFACode"
+                name="twoFACode"
+                value={twoFACode}
+                onChange={handleTwoFACodeChange}
+                placeholder="000000"
+                maxLength={6}
+                required
+                autoComplete="one-time-code"
+                className="two-fa-input"
+                autoFocus
+              />
+            </div>
 
-          <div className="admin-form-group">
-            <label htmlFor="password">Şifre</label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              placeholder="Şifrenizi girin"
-              required
-              autoComplete="current-password"
-            />
-          </div>
+            <button
+              type="submit"
+              className="admin-login-button"
+              disabled={isLoading || twoFACode.length !== 6}
+            >
+              {isLoading ? (
+                <>
+                  <span className="admin-button-spinner"></span>
+                  Doğrulanıyor...
+                </>
+              ) : (
+                "Doğrula"
+              )}
+            </button>
 
-          <button
-            type="submit"
-            className="admin-login-button"
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <>
-                <span className="admin-button-spinner"></span>
-                Giriş yapılıyor...
-              </>
-            ) : (
-              "Giriş Yap"
-            )}
-          </button>
-        </form>
+            <button
+              type="button"
+              className="admin-back-button"
+              onClick={handleBack}
+              disabled={isLoading}
+            >
+              ← Geri Dön
+            </button>
+          </form>
+        )}
 
         <div className="admin-login-footer">
           <a href="/login" className="back-to-user">
