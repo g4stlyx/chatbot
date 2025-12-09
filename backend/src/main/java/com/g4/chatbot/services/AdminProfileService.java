@@ -23,15 +23,44 @@ public class AdminProfileService {
     private PasswordService passwordService;
     
     /**
-     * Get admin profile by admin ID
+     * Get own admin profile by admin ID (no level check - for own profile)
      */
     public AdminProfileDTO getAdminProfile(Long adminId) {
-        log.info("Fetching profile for admin ID: {}", adminId);
+        log.info("Fetching own profile for admin ID: {}", adminId);
         
         Admin admin = adminRepository.findById(adminId)
             .orElseThrow(() -> new ResourceNotFoundException("Admin not found with ID: " + adminId));
         
         return mapToDTO(admin);
+    }
+    
+    /**
+     * Get another admin's profile by ID (with level validation)
+     * Level 0 can view all, Level 1 can view Level 1 and 2, Level 2 can only view Level 2
+     */
+    public AdminProfileDTO getAdminProfileById(Long requestingAdminId, Long targetAdminId) {
+        log.info("Admin {} fetching profile of admin {}", requestingAdminId, targetAdminId);
+        
+        // If viewing own profile, no level check needed
+        if (requestingAdminId.equals(targetAdminId)) {
+            return getAdminProfile(targetAdminId);
+        }
+        
+        Admin requestingAdmin = adminRepository.findById(requestingAdminId)
+            .orElseThrow(() -> new ResourceNotFoundException("Requesting admin not found with ID: " + requestingAdminId));
+        
+        Admin targetAdmin = adminRepository.findById(targetAdminId)
+            .orElseThrow(() -> new ResourceNotFoundException("Admin not found with ID: " + targetAdminId));
+        
+        // Level validation: can only view admins at same level or higher level number (lower privilege)
+        // Level 0 (super admin) can view all
+        // Level 1 can view level 1 and 2
+        // Level 2 can only view level 2
+        if (requestingAdmin.getLevel() > targetAdmin.getLevel()) {
+            throw new BadRequestException("You don't have permission to view this admin's profile");
+        }
+        
+        return mapToDTO(targetAdmin);
     }
     
     /**

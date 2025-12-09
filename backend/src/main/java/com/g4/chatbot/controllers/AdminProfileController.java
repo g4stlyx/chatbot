@@ -10,12 +10,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/admin/profile")
+@PreAuthorize("hasRole('ADMIN')")
 @Slf4j
 public class AdminProfileController {
     
@@ -36,7 +38,7 @@ public class AdminProfileController {
     }
     
     /**
-     * Get any admin's profile by ID (for super admins and higher level admins)
+     * Get any admin's profile by ID (with level validation)
      * GET /api/v1/admin/profile/{adminId}
      */
     @GetMapping("/{adminId}")
@@ -47,7 +49,7 @@ public class AdminProfileController {
         Long requestingAdminId = (Long) authentication.getDetails();
         log.info("Admin {} fetching profile of admin {}", requestingAdminId, adminId);
         
-        AdminProfileDTO profile = adminProfileService.getAdminProfile(adminId);
+        AdminProfileDTO profile = adminProfileService.getAdminProfileById(requestingAdminId, adminId);
         return ResponseEntity.ok(profile);
     }
     
