@@ -232,3 +232,58 @@
     font-size: 24px;
   }
 }
+
+/* 2FA Styles */
+.admin-2fa-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(102, 126, 234, 0.15);
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.admin-2fa-info svg {
+  flex-shrink: 0;
+  color: #667eea;
+}
+
+.two-fa-input {
+  font-family: "Monaco", "Menlo", "Consolas", monospace;
+  font-size: 28px !important;
+  text-align: center;
+  letter-spacing: 12px;
+  padding: 16px !important;
+}
+
+.two-fa-input::placeholder {
+  letter-spacing: 12px;
+  opacity: 0.3;
+}
+
+.admin-back-button {
+  width: 100%;
+  padding: 12px 24px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.admin-back-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #fff;
+}
+
+.admin-back-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

@@ -5,7 +5,7 @@ import {
   useEffect,
   useCallback,
 } from "react";
-import { adminAuthAPI, adminProfileAPI } from "../services/adminApi";
+import { adminAuthAPI, adminProfileAPI, admin2FAAPI } from "../services/adminApi";
 
 const AdminContext = createContext(null);
 
@@ -56,6 +56,17 @@ export const AdminProvider = ({ children }) => {
       const response = await adminAuthAPI.login(credentials);
       const data = response.data;
 
+      // Check if 2FA is required FIRST (before checking success)
+      if (data.requires2FA) {
+        setLoading(false);
+        return {
+          success: false,
+          requires2FA: true,
+          username: data.user?.username || credentials.username,
+          message: "2FA doğrulaması gerekiyor",
+        };
+      }
+
       // Check if login was successful
       if (!data.success) {
         setError(data.message || "Giriş başarısız");
@@ -80,6 +91,38 @@ export const AdminProvider = ({ children }) => {
       const message =
         err.response?.data?.message ||
         "Giriş başarısız. Lütfen bilgilerinizi kontrol edin.";
+      setError(message);
+      return { success: false, error: message };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Verify 2FA code and complete login
+  const verify2FA = useCallback(async (username, code) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await admin2FAAPI.verifyLogin(username, code);
+      const data = response.data;
+
+      if (!data.success) {
+        setError(data.message || "2FA doğrulaması başarısız");
+        return { success: false, error: data.message };
+      }
+
+      const { accessToken, user } = data;
+
+      localStorage.setItem("adminToken", accessToken);
+      localStorage.setItem("admin", JSON.stringify(user));
+      setAdmin(user);
+
+      return { success: true };
+    } catch (err) {
+      const message =
+        err.response?.data?.message ||
+        "2FA doğrulaması başarısız. Lütfen kodu kontrol edin.";
       setError(message);
       return { success: false, error: message };
     } finally {
@@ -136,6 +179,7 @@ export const AdminProvider = ({ children }) => {
     error,
     isAuthenticated: !!admin,
     login,
+    verify2FA,
     logout,
     refreshAdmin,
     hasLevel,

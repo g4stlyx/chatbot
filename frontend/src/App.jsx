@@ -22,6 +22,7 @@ import AdminLayout from "./components/admin/AdminLayout";
 import AdminProtectedRoute from "./components/admin/AdminProtectedRoute";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import UserManagementPage from "./pages/admin/UserManagementPage";
+import AdminProfilePage from "./pages/admin/AdminProfilePage";
 import "./App.css";
 
 function App() {
@@ -98,7 +99,7 @@ function App() {
                 />
                 <Route
                   path="profile"
-                  element={<ComingSoon title="Admin Profili" />}
+                  element={<AdminProfilePage />}
                 />
               </Route>
             </Routes>
