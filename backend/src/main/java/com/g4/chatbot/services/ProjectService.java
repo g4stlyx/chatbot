@@ -201,7 +201,8 @@ public class ProjectService {
         log.info("Adding session {} to project {} for user {}", sessionId, projectId, userId);
         
         // Verify project belongs to user
-        Project project = projectRepository.findByIdAndUserId(projectId, userId)
+        // Project project = projectRepository.findByIdAndUserId(projectId, userId)
+        projectRepository.findByIdAndUserId(projectId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project not found or access denied"));
         
         // Verify session belongs to user
