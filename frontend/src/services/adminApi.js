@@ -129,11 +129,8 @@ export const adminSessionAPI = {
     adminApi.delete(`/api/v1/admin/sessions/${sessionId}`),
   archiveSession: (sessionId) =>
     adminApi.post(`/api/v1/admin/sessions/${sessionId}/archive`),
-  flagSession: (sessionId, flagType, reason) =>
-    adminApi.post(`/api/v1/admin/sessions/${sessionId}/flag`, {
-      flagType,
-      reason,
-    }),
+  flagSession: (sessionId, requestBody) =>
+    adminApi.post(`/api/v1/admin/sessions/${sessionId}/flag`, requestBody),
   unflagSession: (sessionId) =>
     adminApi.post(`/api/v1/admin/sessions/${sessionId}/unflag`),
   togglePublic: (sessionId) =>
@@ -181,11 +178,8 @@ export const adminMessageAPI = {
   },
   deleteMessage: (messageId) =>
     adminApi.delete(`/api/v1/admin/messages/${messageId}`),
-  flagMessage: (messageId, flagType, reason) =>
-    adminApi.post(`/api/v1/admin/messages/${messageId}/flag`, {
-      flagType,
-      reason,
-    }),
+  flagMessage: (messageId, requestBody) =>
+    adminApi.post(`/api/v1/admin/messages/${messageId}/flag`, requestBody),
   unflagMessage: (messageId) =>
     adminApi.post(`/api/v1/admin/messages/${messageId}/unflag`),
 };

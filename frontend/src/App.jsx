@@ -22,6 +22,11 @@ import AdminLayout from "./components/admin/AdminLayout";
 import AdminProtectedRoute from "./components/admin/AdminProtectedRoute";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import UserManagementPage from "./pages/admin/UserManagementPage";
+import SessionManagementPage from "./pages/admin/SessionManagementPage";
+import MessageManagementPage from "./pages/admin/MessageManagementPage";
+import AdminManagementPage from "./pages/admin/AdminManagementPage";
+import ActivityLogsPage from "./pages/admin/ActivityLogsPage";
+import TokenManagementPage from "./pages/admin/TokenManagementPage";
 import "./App.css";
 
 function App() {
@@ -75,27 +80,11 @@ function App() {
                 />
                 <Route path="dashboard" element={<AdminDashboard />} />
                 <Route path="users" element={<UserManagementPage />} />
-                {/* Placeholder routes - will be implemented later */}
-                <Route
-                  path="sessions"
-                  element={<ComingSoon title="Oturum Yönetimi" />}
-                />
-                <Route
-                  path="messages"
-                  element={<ComingSoon title="Mesaj Yönetimi" />}
-                />
-                <Route
-                  path="admins"
-                  element={<ComingSoon title="Admin Yönetimi" />}
-                />
-                <Route
-                  path="activity-logs"
-                  element={<ComingSoon title="Aktivite Logları" />}
-                />
-                <Route
-                  path="tokens"
-                  element={<ComingSoon title="Token Yönetimi" />}
-                />
+                <Route path="sessions" element={<SessionManagementPage />} />
+                <Route path="messages" element={<MessageManagementPage />} />
+                <Route path="admins" element={<AdminManagementPage />} />
+                <Route path="activity-logs" element={<ActivityLogsPage />} />
+                <Route path="tokens" element={<TokenManagementPage />} />
                 <Route
                   path="profile"
                   element={<ComingSoon title="Admin Profili" />}
