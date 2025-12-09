@@ -178,6 +178,7 @@ public class AdminProfileService {
             .level(admin.getLevel())
             .permissions(admin.getPermissions())
             .isActive(admin.getIsActive())
+            .twoFactorEnabled(admin.getTwoFactorEnabled())
             .createdBy(admin.getCreatedBy())
             .createdAt(admin.getCreatedAt())
             .updatedAt(admin.getUpdatedAt())

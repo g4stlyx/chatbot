@@ -20,6 +20,7 @@ public class AuthResponse {
     private UserInfo user;
     private String message;
     private boolean success;
+    private Boolean requires2FA; // True when admin has 2FA enabled and needs to complete verification
     
     @Data
     @NoArgsConstructor
@@ -36,6 +37,7 @@ public class AuthResponse {
         private boolean emailVerified;
         private String userType; // "user" or "admin"
         private Integer level; // For admins
+        private Boolean twoFactorEnabled; // For admins
         private LocalDateTime lastLoginAt;
     }
 }

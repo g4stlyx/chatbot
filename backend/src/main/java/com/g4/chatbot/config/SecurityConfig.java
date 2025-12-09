@@ -71,6 +71,7 @@ public class SecurityConfig {
                         // TODO: public endpoints, check them well
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers("/api/v1/health/**").permitAll()
+                        .requestMatchers("/api/v1/admin/2fa/verify-login").permitAll()
 
                         // Public chat sessions
                         .requestMatchers("/api/v1/sessions/public/**").permitAll()

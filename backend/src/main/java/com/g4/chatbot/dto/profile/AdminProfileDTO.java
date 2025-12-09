@@ -22,6 +22,7 @@ public class AdminProfileDTO {
     private Integer level;
     private List<String> permissions;
     private Boolean isActive;
+    private Boolean twoFactorEnabled;
     private Long createdBy;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

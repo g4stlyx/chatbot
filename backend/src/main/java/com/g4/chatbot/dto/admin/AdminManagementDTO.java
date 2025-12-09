@@ -22,6 +22,7 @@ public class AdminManagementDTO {
     private Integer level;
     private List<String> permissions;
     private Boolean isActive;
+    private Boolean twoFactorEnabled;
     private Integer loginAttempts;
     private LocalDateTime lockedUntil;
     private Long createdBy;

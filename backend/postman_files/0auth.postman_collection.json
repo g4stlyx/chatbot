@@ -1,361 +1,563 @@
 {
 	"info": {
 		"_postman_id": "75b0e4b7-65ff-452b-ba65-bb07688d2251",
-		"name": "0. auth",
+		"name": "0. auth and 2fa",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "27783651",
 		"_collection_link": "https://kssapi-8302.postman.co/workspace/chatbot-mcp-server~543af950-ce8d-46bb-9dec-7a8956624795/collection/27783651-75b0e4b7-65ff-452b-ba65-bb07688d2251?action=share&source=collection_link&creator=27783651"
 	},
 	"item": [
 		{
-			"name": "Register User",
-			"request": {
-				"method": "POST",
-				"header": [
-					{
-						"key": "Content-Type",
-						"value": "application/json"
-					}
-				],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n    \"username\": \"user4\",\n    \"email\": \"qweqewqe@gmail.com\",\n    \"password\": \"12345678\",\n    \"firstName\": \"test\",\n    \"lastName\": \"test\"\n}"
-				},
-				"url": {
-					"raw": "{{base_url}}/api/v1/auth/register",
-					"host": [
-						"{{base_url}}"
-					],
-					"path": [
-						"api",
-						"v1",
-						"auth",
-						"register"
-					]
-				},
-				"description": "Register a new user account"
-			},
-			"response": []
-		},
-		{
-			"name": "Login User",
-			"event": [
+			"name": "User Auth",
+			"item": [
 				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"// Extract JWT token from response and set as environment variable",
-							"if (pm.response.code === 200) {",
-							"    const responseJson = pm.response.json();",
-							"    if (responseJson.success && responseJson.token) {",
-							"        pm.environment.set('jwt_token', responseJson.token);",
-							"        console.log('JWT token saved to environment');",
-							"    } else if (responseJson.success && responseJson.accessToken) {",
-							"        pm.environment.set('jwt_token', responseJson.accessToken);",
-							"        console.log('JWT Token Saved: ', responseJson.accessToken);",
-							"    }",
-							"}"
+					"name": "Register User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
 						],
-						"type": "text/javascript",
-						"packages": {},
-						"requests": {}
-					}
-				},
-				{
-					"listen": "prerequest",
-					"script": {
-						"exec": [
-							""
-						],
-						"type": "text/javascript",
-						"packages": {},
-						"requests": {}
-					}
-				}
-			],
-			"request": {
-				"method": "POST",
-				"header": [
-					{
-						"key": "Content-Type",
-						"value": "application/json"
-					}
-				],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n    \"username\": \"newuser\",\n    \"password\": \"123456789\",\n    \"userType\":\"user\"\n}"
-				},
-				"url": {
-					"raw": "{{base_url}}/api/v1/auth/login",
-					"host": [
-						"{{base_url}}"
-					],
-					"path": [
-						"api",
-						"v1",
-						"auth",
-						"login"
-					]
-				},
-				"description": "Authenticate user and get JWT token"
-			},
-			"response": []
-		},
-		{
-			"name": "Login with Email",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"// Extract JWT token from response and set as environment variable",
-							"if (pm.response.code === 200) {",
-							"    const responseJson = pm.response.json();",
-							"    if (responseJson.success && responseJson.token) {",
-							"        pm.environment.set('jwt_token', responseJson.token);",
-							"        console.log('JWT token saved to environment');",
-							"    } else if (responseJson.success && responseJson.accessToken) {",
-							"        pm.environment.set('jwt_token', responseJson.accessToken);",
-							"        console.log('JWT Token Saved: ', responseJson.accessToken);",
-							"    }",
-							"}"
-						],
-						"type": "text/javascript",
-						"packages": {},
-						"requests": {}
-					}
-				}
-			],
-			"request": {
-				"method": "POST",
-				"header": [
-					{
-						"key": "Content-Type",
-						"value": "application/json"
-					}
-				],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n    \"username\": \"g4stlyx@gmail.com\",\n    \"password\": \"12345678\"\n}"
-				},
-				"url": {
-					"raw": "{{base_url}}/api/v1/auth/login",
-					"host": [
-						"{{base_url}}"
-					],
-					"path": [
-						"api",
-						"v1",
-						"auth",
-						"login"
-					]
-				},
-				"description": "Login using email instead of username"
-			},
-			"response": []
-		},
-		{
-			"name": "Verify Email",
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "{{base_url}}/api/v1/auth/verify-email?token=7114fd11-4e09-4157-8206-a86b1eb1ee69",
-					"host": [
-						"{{base_url}}"
-					],
-					"path": [
-						"api",
-						"v1",
-						"auth",
-						"verify-email"
-					],
-					"query": [
-						{
-							"key": "token",
-							"value": "7114fd11-4e09-4157-8206-a86b1eb1ee69"
-						}
-					]
-				},
-				"description": "Verify email address using the token received via email"
-			},
-			"response": []
-		},
-		{
-			"name": "Verify Password",
-			"request": {
-				"method": "POST",
-				"header": [
-					{
-						"key": "Content-Type",
-						"value": "application/json"
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"user4\",\n    \"email\": \"qweqewqe@gmail.com\",\n    \"password\": \"12345678\",\n    \"firstName\": \"test\",\n    \"lastName\": \"test\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/register",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"register"
+							]
+						},
+						"description": "Register a new user account"
 					},
-					{
-						"key": "Authorization",
-						"value": "Bearer {{jwt_token}}"
-					}
-				],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n    \"username\": \"user1\",\n    \"password\": \"12345678\"\n}"
+					"response": []
 				},
-				"url": {
-					"raw": "{{base_url}}/api/v1/auth/verify-password",
-					"host": [
-						"{{base_url}}"
-					],
-					"path": [
-						"api",
-						"v1",
-						"auth",
-						"verify-password"
-					]
-				},
-				"description": "Verify user's current password before password change operations"
-			},
-			"response": []
-		},
-		{
-			"name": "Resend Email Verification",
-			"request": {
-				"method": "POST",
-				"header": [
-					{
-						"key": "Content-Type",
-						"value": "application/json"
-					}
-				],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n    \"email\":\"merhabalar4qg@gmail.com\"\n}"
-				},
-				"url": {
-					"raw": "{{base_url}}/api/v1/auth/resend-verification",
-					"host": [
-						"{{base_url}}"
-					],
-					"path": [
-						"api",
-						"v1",
-						"auth",
-						"resend-verification"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Forgot Password",
-			"request": {
-				"method": "POST",
-				"header": [
-					{
-						"key": "Content-Type",
-						"value": "application/json"
-					}
-				],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n    \"email\": \"g4stlyx@gmail.com\"\n}"
-				},
-				"url": {
-					"raw": "{{base_url}}/api/v1/auth/forgot-password",
-					"host": [
-						"{{base_url}}"
-					],
-					"path": [
-						"api",
-						"v1",
-						"auth",
-						"forgot-password"
-					]
-				},
-				"description": "Request password reset email"
-			},
-			"response": []
-		},
-		{
-			"name": "Reset Password",
-			"request": {
-				"method": "POST",
-				"header": [
-					{
-						"key": "Content-Type",
-						"value": "application/json"
-					}
-				],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n    \"token\": \"70d3525b-35fe-4c4b-b480-f280ba81059b\",\n    \"newPassword\": \"123456789\"\n}"
-				},
-				"url": {
-					"raw": "{{base_url}}/api/v1/auth/reset-password",
-					"host": [
-						"{{base_url}}"
-					],
-					"path": [
-						"api",
-						"v1",
-						"auth",
-						"reset-password"
-					]
-				},
-				"description": "Reset password using the token received via email"
-			},
-			"response": []
-		},
-		{
-			"name": "Login Admin",
-			"event": [
 				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"// Extract JWT token from response and set as environment variable",
-							"if (pm.response.code === 200) {",
-							"    const responseJson = pm.response.json();",
-							"    if (responseJson.success && responseJson.token) {",
-							"        pm.environment.set('jwt_token', responseJson.token);",
-							"        console.log('JWT token saved to environment');",
-							"    } else if (responseJson.success && responseJson.accessToken) {",
-							"        pm.environment.set('jwt_token', responseJson.accessToken);",
-							"        console.log('JWT Token Saved: ', responseJson.accessToken);",
-							"    }",
-							"}"
-						],
-						"type": "text/javascript",
-						"packages": {},
-						"requests": {}
-					}
-				}
-			],
-			"request": {
-				"method": "POST",
-				"header": [
-					{
-						"key": "Content-Type",
-						"value": "application/json"
-					}
-				],
-				"body": {
-					"mode": "raw",
-					"raw": "{\n    \"username\": \"g4stly\",\n    \"password\": \"123456789\",\n    \"userType\":\"admin\"\n}"
-				},
-				"url": {
-					"raw": "{{base_url}}/api/v1/auth/login",
-					"host": [
-						"{{base_url}}"
+					"name": "Login User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Extract JWT token from response and set as environment variable",
+									"if (pm.response.code === 200) {",
+									"    const responseJson = pm.response.json();",
+									"    if (responseJson.success && responseJson.token) {",
+									"        pm.environment.set('jwt_token', responseJson.token);",
+									"        console.log('JWT token saved to environment');",
+									"    } else if (responseJson.success && responseJson.accessToken) {",
+									"        pm.environment.set('jwt_token', responseJson.accessToken);",
+									"        console.log('JWT Token Saved: ', responseJson.accessToken);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
 					],
-					"path": [
-						"api",
-						"v1",
-						"auth",
-						"login"
-					]
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"newuser\",\n    \"password\": \"123456789\",\n    \"userType\":\"user\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"login"
+							]
+						},
+						"description": "Authenticate user and get JWT token"
+					},
+					"response": []
 				},
-				"description": "Login as admin user"
-			},
-			"response": []
+				{
+					"name": "Login with Email",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Extract JWT token from response and set as environment variable",
+									"if (pm.response.code === 200) {",
+									"    const responseJson = pm.response.json();",
+									"    if (responseJson.success && responseJson.token) {",
+									"        pm.environment.set('jwt_token', responseJson.token);",
+									"        console.log('JWT token saved to environment');",
+									"    } else if (responseJson.success && responseJson.accessToken) {",
+									"        pm.environment.set('jwt_token', responseJson.accessToken);",
+									"        console.log('JWT Token Saved: ', responseJson.accessToken);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"g4stlyx@gmail.com\",\n    \"password\": \"12345678\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"login"
+							]
+						},
+						"description": "Login using email instead of username"
+					},
+					"response": []
+				},
+				{
+					"name": "Verify Email",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/verify-email?token=7114fd11-4e09-4157-8206-a86b1eb1ee69",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"verify-email"
+							],
+							"query": [
+								{
+									"key": "token",
+									"value": "7114fd11-4e09-4157-8206-a86b1eb1ee69"
+								}
+							]
+						},
+						"description": "Verify email address using the token received via email"
+					},
+					"response": []
+				},
+				{
+					"name": "Resend Email Verification",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\":\"merhabalar4qg@gmail.com\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/resend-verification",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"resend-verification"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Admin Auth",
+			"item": [
+				{
+					"name": "Login Admin",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Extract JWT token from response and set as environment variable",
+									"if (pm.response.code === 200) {",
+									"    const responseJson = pm.response.json();",
+									"    if (responseJson.success && responseJson.accessToken) {",
+									"        pm.environment.set('jwt_token', responseJson.accessToken);",
+									"        console.log('JWT Token Saved: ', responseJson.accessToken);",
+									"    } else if (responseJson.requires2FA) {",
+									"        console.log('2FA Required - use the 2FA verify-login endpoint');",
+									"        pm.environment.set('2fa_username', responseJson.user.username);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"g4stly\",\n    \"password\": \"123456789\",\n    \"userType\":\"admin\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"login"
+							]
+						},
+						"description": "Login as admin user. If 2FA is enabled, returns requires2FA=true and you need to call /api/v1/admin/2fa/verify-login with the 6-digit code from your authenticator app."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Admin 2FA",
+			"item": [
+				{
+					"name": "Setup 2FA",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/2fa/setup",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"admin",
+								"2fa",
+								"setup"
+							]
+						},
+						"description": "Generate 2FA secret and QR code for the authenticated admin. Returns secret key and QR code image (base64) to scan with authenticator app (Google Authenticator, Authy, etc.)."
+					},
+					"response": []
+				},
+				{
+					"name": "Verify & Enable 2FA",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"code\": \"123456\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/2fa/verify",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"admin",
+								"2fa",
+								"verify"
+							]
+						},
+						"description": "Verify the 6-digit code from authenticator app to enable 2FA. This must be called after /setup to complete 2FA activation."
+					},
+					"response": []
+				},
+				{
+					"name": "Check 2FA Status",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/2fa/status",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"admin",
+								"2fa",
+								"status"
+							]
+						},
+						"description": "Check if 2FA is enabled for the authenticated admin."
+					},
+					"response": []
+				},
+				{
+					"name": "Disable 2FA",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"code\": \"123456\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/2fa/disable",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"admin",
+								"2fa",
+								"disable"
+							]
+						},
+						"description": "Disable 2FA for the authenticated admin. Requires current 6-digit code for security."
+					},
+					"response": []
+				},
+				{
+					"name": "2FA Login Verify",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Extract JWT token from response after successful 2FA verification",
+									"if (pm.response.code === 200) {",
+									"    const responseJson = pm.response.json();",
+									"    if (responseJson.success && responseJson.accessToken) {",
+									"        pm.environment.set('jwt_token', responseJson.accessToken);",
+									"        console.log('JWT Token Saved after 2FA: ', responseJson.accessToken);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"g4stly\",\n    \"code\": \"123456\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/admin/2fa/verify-login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"admin",
+								"2fa",
+								"verify-login"
+							]
+						},
+						"description": "Complete admin login with 2FA verification. Use this after /auth/login returns requires2FA=true. Provide the username and 6-digit code from authenticator app."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Password Management",
+			"item": [
+				{
+					"name": "Verify Password",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"user1\",\n    \"password\": \"12345678\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/verify-password",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"verify-password"
+							]
+						},
+						"description": "Verify user's current password before password change operations"
+					},
+					"response": []
+				},
+				{
+					"name": "Forgot Password",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"g4stlyx@gmail.com\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/forgot-password",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"forgot-password"
+							]
+						},
+						"description": "Request password reset email"
+					},
+					"response": []
+				},
+				{
+					"name": "Reset Password",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"token\": \"70d3525b-35fe-4c4b-b480-f280ba81059b\",\n    \"newPassword\": \"123456789\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/reset-password",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"reset-password"
+							]
+						},
+						"description": "Reset password using the token received via email"
+					},
+					"response": []
+				}
+			]
 		},
 		{
 			"name": "Health Check",

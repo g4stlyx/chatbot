@@ -480,6 +480,7 @@ public class AdminManagementService {
             .level(admin.getLevel())
             .permissions(admin.getPermissions())
             .isActive(admin.getIsActive())
+            .twoFactorEnabled(admin.getTwoFactorEnabled())
             .loginAttempts(admin.getLoginAttempts())
             .lockedUntil(admin.getLockedUntil())
             .createdBy(admin.getCreatedBy())

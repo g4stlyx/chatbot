@@ -310,6 +310,19 @@ public class AuthService {
                 .build();
         }
         
+        // Check if 2FA is enabled - require 2FA verification
+        if (Boolean.TRUE.equals(admin.getTwoFactorEnabled())) {
+            // Don't generate tokens yet - return response indicating 2FA is required
+            return AuthResponse.builder()
+                .success(false)
+                .message("2FA verification required")
+                .requires2FA(true)
+                .user(AuthResponse.UserInfo.builder()
+                    .username(admin.getUsername())
+                    .build())
+                .build();
+        }
+        
         // Reset login attempts on successful login
         admin.setLoginAttempts(0);
         admin.setLockedUntil(null);
@@ -337,6 +350,7 @@ public class AuthService {
                 .emailVerified(true) // Admins are auto-verified
                 .userType("admin")
                 .level(admin.getLevel())
+                .twoFactorEnabled(admin.getTwoFactorEnabled())
                 .lastLoginAt(admin.getLastLoginAt())
                 .build())
             .build();
