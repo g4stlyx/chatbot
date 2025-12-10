@@ -22,15 +22,12 @@ import AdminLayout from "./components/admin/AdminLayout";
 import AdminProtectedRoute from "./components/admin/AdminProtectedRoute";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import UserManagementPage from "./pages/admin/UserManagementPage";
-<<<<<<< HEAD
 import SessionManagementPage from "./pages/admin/SessionManagementPage";
 import MessageManagementPage from "./pages/admin/MessageManagementPage";
 import AdminManagementPage from "./pages/admin/AdminManagementPage";
 import ActivityLogsPage from "./pages/admin/ActivityLogsPage";
 import TokenManagementPage from "./pages/admin/TokenManagementPage";
-=======
 import AdminProfilePage from "./pages/admin/AdminProfilePage";
->>>>>>> b7fc9f71c875c9057f1c24f5463eba7c2b36df6c
 import "./App.css";
 
 function App() {
@@ -89,10 +86,7 @@ function App() {
                 <Route path="admins" element={<AdminManagementPage />} />
                 <Route path="activity-logs" element={<ActivityLogsPage />} />
                 <Route path="tokens" element={<TokenManagementPage />} />
-                <Route
-                  path="profile"
-                  element={<AdminProfilePage />}
-                />
+                <Route path="profile" element={<AdminProfilePage />} />
               </Route>
             </Routes>
           </AdminProvider>

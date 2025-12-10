@@ -11,7 +11,7 @@ const ActivityLogsPage = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [pageSize, setPageSize] = useState(20);
-  const [sortBy, setSortBy] = useState("timestamp");
+  const [sortBy, setSortBy] = useState("createdAt");
   const [sortDirection, setSortDirection] = useState("desc");
   const [actionFilter, setActionFilter] = useState("");
   const [adminFilter, setAdminFilter] = useState("");
@@ -51,7 +51,8 @@ const ActivityLogsPage = () => {
       if (adminFilter) params.adminId = parseInt(adminFilter);
 
       const response = await adminActivityLogAPI.getAllLogs(params);
-      const data = response.data || response;
+      const responseData = response.data || response;
+      const data = responseData.data || responseData;
       setLogs(data.logs || data.content || []);
       setTotalPages(data.totalPages || 0);
     } catch (error) {

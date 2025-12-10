@@ -72,7 +72,93 @@ export const chatAPI = {
     return api.post("/api/v1/chat", payload);
   },
 
-  // Send message (streaming) - Returns EventSource URL
+  // Send message (streaming with Server-Sent Events)
+  sendMessageStream: async (message, sessionId = null, onChunk) => {
+    const token = localStorage.getItem("token");
+    const url = sessionId
+      ? `${API_BASE_URL}/api/v1/chat/sessions/${sessionId}/stream`
+      : `${API_BASE_URL}/api/v1/chat/stream`;
+
+    console.log("Starting stream to:", url);
+
+    return new Promise(async (resolve, reject) => {
+      try {
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ message }),
+        });
+
+        console.log("Stream response status:", response.status);
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let metadata = {};
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) {
+            console.log("Stream complete");
+            break;
+          }
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+
+          for (const line of lines) {
+            if (!line.trim()) continue;
+
+            // SSE format: "event: message" or "data: content"
+            if (line.startsWith("event:")) {
+              // Skip event type line
+              continue;
+            } else if (line.startsWith("data:")) {
+              // Don't trim the actual content, only remove "data:" prefix
+              const dataContent = line.substring(5);
+
+              // Only trim if it looks like JSON (starts with { or [)
+              const trimmedCheck = dataContent.trim();
+              console.log("SSE data:", trimmedCheck);
+
+              if (trimmedCheck === "[DONE]") {
+                resolve(metadata);
+                return;
+              }
+
+              try {
+                // Try to parse as JSON first (for session metadata)
+                const data = JSON.parse(trimmedCheck);
+                if (data.sessionId) metadata.sessionId = data.sessionId;
+                if (data.userMessageId)
+                  metadata.userMessageId = data.userMessageId;
+              } catch (e) {
+                // If not JSON, it's plain text content chunk
+                // Use original dataContent (not trimmed) to preserve spaces
+                console.log("Chunk:", dataContent);
+                onChunk(dataContent);
+              }
+            }
+          }
+        }
+
+        resolve(metadata);
+      } catch (error) {
+        console.error("Streaming error:", error);
+        reject(error);
+      }
+    });
+  },
+
+  // Send message (streaming) - Returns EventSource URL (legacy method)
   getStreamUrl: (sessionId = null) => {
     const token = localStorage.getItem("token");
     const baseUrl = sessionId

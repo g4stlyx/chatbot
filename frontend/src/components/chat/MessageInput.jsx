@@ -2,8 +2,9 @@ import { useState } from "react";
 import { useChat } from "../../context/ChatContext";
 import { chatAPI } from "../../services/api";
 
-const MessageInput = () => {
-  const { currentSession, addMessage, fetchSessions } = useChat();
+const MessageInput = ({ onStreamingChange }) => {
+  const { currentSession, addMessage, updateMessage, fetchSessions } =
+    useChat();
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -15,6 +16,7 @@ const MessageInput = () => {
     const userMessage = input.trim();
     setInput("");
     setLoading(true);
+    onStreamingChange?.(true);
 
     // Add user message to UI immediately
     const tempUserMessage = {
@@ -25,40 +27,55 @@ const MessageInput = () => {
     };
     addMessage(tempUserMessage);
 
+    // Add placeholder for assistant message
+    const assistantMsgId = Date.now() + 1;
+    const assistantMessage = {
+      id: assistantMsgId,
+      role: "assistant",
+      content: "",
+      timestamp: new Date().toISOString(),
+      isStreaming: true,
+    };
+    addMessage(assistantMessage);
+
     try {
-      // Send message to backend (non-streaming)
-      const response = await chatAPI.sendMessage(
+      // Use streaming endpoint
+      const response = await chatAPI.sendMessageStream(
         userMessage,
-        currentSession?.sessionId
+        currentSession?.sessionId,
+        (chunk) => {
+          // Update message content as chunks arrive
+          updateMessage(assistantMsgId, (prev) => ({
+            ...prev,
+            content: prev.content + chunk,
+          }));
+        }
       );
 
-      console.log("Chat response:", response.data); // Debug log
-
-      // Add assistant response
-      const assistantMessage = {
-        id: response.data.assistantMessageId || Date.now() + 1,
-        role: "assistant",
-        content: response.data.assistantMessage || "",
-        timestamp: new Date().toISOString(),
-      };
-      addMessage(assistantMessage);
+      // Mark streaming as complete
+      updateMessage(assistantMsgId, (prev) => ({
+        ...prev,
+        isStreaming: false,
+      }));
 
       // Refresh sessions list to show new session if created
-      if (!currentSession || response.data.isNewSession) {
+      if (!currentSession || response.isNewSession) {
         await fetchSessions();
       }
     } catch (error) {
       console.error("Error sending message:", error);
 
-      // Add error message
-      addMessage({
-        id: Date.now() + 1,
+      // Update with error message
+      updateMessage(assistantMsgId, {
+        id: assistantMsgId,
         role: "assistant",
         content: "Sorry, I encountered an error. Please try again.",
         timestamp: new Date().toISOString(),
+        isStreaming: false,
       });
     } finally {
       setLoading(false);
+      onStreamingChange?.(false);
     }
   };
 

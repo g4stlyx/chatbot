@@ -87,7 +87,15 @@ export const ChatProvider = ({ children }) => {
   // Update message in conversation
   const updateMessage = useCallback((messageId, updates) => {
     setMessages((prev) =>
-      prev.map((msg) => (msg.id === messageId ? { ...msg, ...updates } : msg))
+      prev.map((msg) => {
+        if (msg.id === messageId) {
+          // Support both object and function updater
+          const newData =
+            typeof updates === "function" ? updates(msg) : updates;
+          return { ...msg, ...newData };
+        }
+        return msg;
+      })
     );
   }, []);
 
