@@ -45,6 +45,7 @@ A production-ready, enterprise-grade chatbot application built with Spring Boot 
 - 🔄 **Message Regeneration** - Re-generate AI responses with different models
 - 🎯 **Context Management** - Smart context window limiting (last 20 messages)
 - 🚨 **Auth Error Logging** - Track failed authentication attempts with IP and user agent
+- 🔐 **Two-Factor Authentication** - TOTP-based 2FA for admin accounts
 
 ### Security & Monitoring
 - 🔐 **Argon2 Password Hashing** - Industry-standard password security
@@ -54,21 +55,22 @@ A production-ready, enterprise-grade chatbot application built with Spring Boot 
 - 🌐 **CORS Configuration** - Secure cross-origin resource sharing
 - 🛡️ **Output Filtering** - Validates AI responses to prevent system prompt leakage
 - 🔒 **Auth Error Tracking** - Monitor and manage failed authentication attempts
+- 💾 **Database Backup** - Automated daily backups with email notifications
 
 ## 🏗️ Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                         Frontend                             │
-│              React + Vite + TailwindCSS                      │
-│         (Protected Routes, Context API, Axios)               │
+│              React + Vite + Context API                      │
+│         (Protected Routes, Admin Panel, Streaming)           │
 └───────────────────────┬─────────────────────────────────────┘
                         │ HTTP/REST API
 ┌───────────────────────▼─────────────────────────────────────┐
 │                     Spring Boot Backend                      │
 │  ┌──────────────┬──────────────┬──────────────────────────┐ │
 │  │ Controllers  │  Services    │  Security Layer          │ │
-│  │  (REST API)  │  (Business)  │  (JWT, Filters)          │ │
+│  │  (17 REST)   │  (26 Svc)    │  (JWT, 2FA, Filters)     │ │
 │  └──────────────┴──────────────┴──────────────────────────┘ │
 └───────────────────────┬─────────────────────────────────────┘
                         │
@@ -85,7 +87,7 @@ A production-ready, enterprise-grade chatbot application built with Spring Boot 
 ### Backend
 - **Framework:** Spring Boot 3.4.4
 - **Language:** Java 17
-- **Security:** Spring Security + JWT
+- **Security:** Spring Security + JWT + 2FA (TOTP)
 - **Database:** MySQL 8.0
 - **Cache:** Redis
 - **ORM:** Spring Data JPA
@@ -96,15 +98,16 @@ A production-ready, enterprise-grade chatbot application built with Spring Boot 
 
 ### Frontend
 - **Framework:** React 18+
-- **Build Tool:** Vite
-- **Styling:** TailwindCSS
+- **Build Tool:** Vite 5.0
 - **HTTP Client:** Axios
-- **State Management:** Context API
-- **Routing:** React Router
+- **State Management:** Context API (Auth, Chat, Admin)
+- **Routing:** React Router 6
+- **Markdown:** react-markdown + remark-gfm
+- **Code Highlighting:** react-syntax-highlighter
 
 ### DevOps
 - **Containerization:** Docker + Docker Compose
-- **API Testing:** Postman Collections (6 collections included)
+- **API Testing:** Postman Collections (8 collections included)
 - **Documentation:** Comprehensive Markdown docs
 
 ## 📁 Project Structure
@@ -113,26 +116,28 @@ A production-ready, enterprise-grade chatbot application built with Spring Boot 
 chatbot/
 ├── backend/                    # Spring Boot Backend
 │   ├── src/main/java/com/g4/chatbot/
-│   │   ├── config/            # Security, CORS, Email configs
-│   │   ├── controllers/       # REST API endpoints
-│   │   ├── dto/               # Data Transfer Objects
-│   │   ├── exception/         # Custom exceptions
-│   │   ├── filters/           # JWT filters
-│   │   ├── models/            # JPA entities
-│   │   ├── repos/             # JPA repositories
-│   │   ├── security/          # Security utilities
-│   │   └── services/          # Business logic
-│   ├── docs/                  # API documentation
-│   ├── postman_files/         # Postman collections
+│   │   ├── config/            # Security, CORS, Email, 2FA configs (11 files)
+│   │   ├── controllers/       # REST API endpoints (17 controllers)
+│   │   ├── dto/               # Data Transfer Objects (64 files)
+│   │   ├── exception/         # Custom exceptions (6 files)
+│   │   ├── models/            # JPA entities (11 entities)
+│   │   ├── repos/             # JPA repositories (11 repos)
+│   │   ├── security/          # Security utilities (4 files)
+│   │   └── services/          # Business logic (26 services)
+│   ├── docs/                  # API documentation (31 files)
+│   ├── postman_files/         # Postman collections (8 files)
 │   └── pom.xml               # Maven dependencies
 │
 ├── frontend/                  # React Frontend
 │   ├── src/
-│   │   ├── components/       # React components
-│   │   ├── context/          # Context providers
+│   │   ├── components/       # React components (19 components)
+│   │   │   ├── admin/        # Admin panel components
+│   │   │   ├── auth/         # Auth components
+│   │   │   └── chat/         # Chat components
+│   │   ├── context/          # Context providers (Auth, Chat, Admin)
 │   │   ├── hooks/            # Custom hooks
-│   │   ├── pages/            # Page components
-│   │   └── services/         # API services
+│   │   ├── pages/            # Page components (17 pages - 8 admin + 9 user)
+│   │   └── services/         # API services (api.js, adminApi.js)
 │   ├── package.json          # npm dependencies
 │   └── vite.config.js        # Vite configuration
 │
@@ -235,7 +240,7 @@ After first run, create an admin account:
 
 ### Postman Collections
 
-The project includes 6 comprehensive Postman collections in `backend/postman_files/`:
+The project includes 8 comprehensive Postman collections in `backend/postman_files/`:
 
 1. **0auth.postman_collection.json** - Authentication endpoints
 2. **1chat_sessions.postman_collection.json** - Chat session management (15 requests)
@@ -243,13 +248,15 @@ The project includes 6 comprehensive Postman collections in `backend/postman_fil
 4. **3messages_phase2.postman_collection.json** - Message CRUD operations (6 requests)
 5. **4profiles.postman_collection.json** - User profile management
 6. **5admin_panel_api.postman_collection.json** - Admin operations
+7. **6projects.postman_collection.json** - Project management
+8. **7database_backup.postman_collection.json** - Database backup
 
 ### Key Endpoints
 
 #### Authentication
 ```
 POST /api/v1/auth/register        # Register new user
-POST /api/v1/auth/login           # Login user
+POST /api/v1/auth/login           # Login user/admin
 POST /api/v1/auth/verify-email    # Verify email
 POST /api/v1/auth/request-reset   # Request password reset
 POST /api/v1/auth/reset-password  # Reset password
@@ -295,6 +302,16 @@ GET    /api/v1/sessions/public/{id}/messages   # Get public session messages
 #### Chat
 ```
 POST /api/v1/chat/send                          # Send message (non-streaming)
+POST /api/v1/chat/stream                        # Send message (streaming)
+```
+
+#### 2FA (Admin)
+```
+POST /api/v1/admin/2fa/setup                   # Setup 2FA
+POST /api/v1/admin/2fa/verify                  # Verify and enable
+POST /api/v1/admin/2fa/disable                 # Disable 2FA
+GET  /api/v1/admin/2fa/status                  # Check status
+POST /api/v1/admin/2fa/verify-login            # Verify during login
 ```
 
 ## 🔒 Security Features
@@ -322,6 +339,7 @@ Multi-layered defense system with input and output filtering:
 - Token expiration and refresh
 - Role-based access control (USER, ADMIN levels 0-2)
 - Argon2 password hashing
+- Two-factor authentication (TOTP) for admins
 
 ### 4. Account Security
 
@@ -329,6 +347,7 @@ Multi-layered defense system with input and output filtering:
 - Account locking after failed attempts
 - Password reset with secure tokens
 - Active/inactive account status
+- Authentication error logging
 
 ## 👑 Admin Panel
 
@@ -345,11 +364,13 @@ Multi-layered defense system with input and output filtering:
 - Activate/deactivate accounts
 - Unlock locked accounts
 - Reset user passwords
+- Verify user emails
 - View user list and details
 
 #### Session Management (6 operations)
 - View, delete, archive sessions
 - Flag/unflag inappropriate sessions
+- Toggle public/private visibility
 - Access all user sessions
 
 #### Message Management (6 operations)
@@ -365,6 +386,7 @@ Multi-layered defense system with input and output filtering:
 - View authentication error logs (401, 403, 404)
 - Monitor failed login attempts
 - Bulk token cleanup
+- Trigger database backups
 
 ### Activity Logging
 
@@ -382,12 +404,13 @@ Comprehensive documentation available in `/backend/docs/`:
 - `CHAT_SEARCH_AND_SHARING_FEATURES.md` - Search and public sharing features
 - `ADMIN_PANEL_COMPLETE_SUMMARY.md` - Complete admin panel documentation
 - `ADMIN_ACTIVITY_LOGGING_FINAL_SUMMARY.md` - Activity logging guide
+- `AUTHENTICATION_ERROR_LOGGING.md` - Auth error logging
+- `COMPLETE_ANTI_PROMPT_INJECTION_SYSTEM.md` - Security documentation
 - `PHASE1_COMPLETE.md` - Phase 1 implementation details
 - `PHASE2_IMPLEMENTATION_SUMMARY.md` - Phase 2 features (Message CRUD)
 - `PROFILE_FEATURE_README.md` - Profile management guide
 - `EMAIL_VERIFICATION_RATE_LIMITING.md` - Rate limiting implementation
-- `CONNECTION_LEAK_FIX.md` - Database optimization
-- And 25+ more detailed technical guides
+- And 20+ more detailed technical guides
 
 ## 🧪 Testing
 
@@ -461,12 +484,24 @@ See `backend/TODO.md` for the complete task list.
 - ✅ Chat search by title
 - ✅ Public chat sharing
 - ✅ Prompt injection protection (8-layer defense)
+- ✅ Two-factor authentication (2FA) for admins
+- ✅ Database backup system
+- ✅ **Complete frontend admin panel:**
+  - ✅ Admin login, dashboard, profile
+  - ✅ User management (full CRUD)
+  - ✅ Session management (list, delete, archive, flag)
+  - ✅ Message management (list, delete, flag)
+  - ✅ Admin management (CRUD, Level 0-1 only)
+  - ✅ Activity logs viewer (Level 0 only)
+  - ✅ Token management (Level 0 only)
 
 ### Upcoming Features
 - [ ] Ready-made prompt templates (user-created & admin-managed)
 - [ ] AI persona system (like Gemini Gems)
 - [ ] OpenAI/Claude/Gemini integration options
-- [ ] Streaming responses in frontend
+- [ ] Dark mode in frontend
+- [ ] Project management UI in frontend
+- [ ] Toast notification system
 
 ## 📄 License
 
