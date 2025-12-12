@@ -15,6 +15,8 @@ import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import ProfilePage from "./pages/ProfilePage";
 import ChatPage from "./pages/ChatPage";
+import ProjectsPage from "./pages/ProjectsPage";
+import PublicSessionsPage from "./pages/PublicSessionsPage";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 // Admin imports
 import AdminLoginPage from "./pages/admin/AdminLoginPage";
@@ -60,6 +62,22 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <ChatPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/projects"
+                element={
+                  <ProtectedRoute>
+                    <ProjectsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/public-sessions"
+                element={
+                  <ProtectedRoute>
+                    <PublicSessionsPage />
                   </ProtectedRoute>
                 }
               />

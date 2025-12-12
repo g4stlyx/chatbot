@@ -3,6 +3,7 @@ import { useChat } from "../../context/ChatContext";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import SessionActions from "./SessionActions";
+import { sessionAPI } from "../../services/api";
 
 const Sidebar = ({ user, onLogout }) => {
   const navigate = useNavigate();
@@ -21,12 +22,44 @@ const Sidebar = ({ user, onLogout }) => {
   const [editingSessionId, setEditingSessionId] = useState(null);
   const [editTitle, setEditTitle] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState(null);
+  const [isSearching, setIsSearching] = useState(false);
+
+  // Use search results if available, otherwise filter sessions
+  const displayedSessions = searchResults !== null ? searchResults : sessions;
 
   // Filter sessions based on status
-  const filteredSessions = sessions.filter((session) => {
+  const filteredSessions = displayedSessions.filter((session) => {
     if (statusFilter === "ALL") return true;
     return session.status === statusFilter;
   });
+
+  const handleSearch = async (query) => {
+    setSearchQuery(query);
+
+    if (!query.trim()) {
+      setSearchResults(null);
+      return;
+    }
+
+    try {
+      setIsSearching(true);
+      const response = await sessionAPI.searchSessions(query);
+      const data = response.data.data || response.data;
+      setSearchResults(data.sessions || []);
+    } catch (error) {
+      console.error("Search failed:", error);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const clearSearch = () => {
+    setSearchQuery("");
+    setSearchResults(null);
+  };
 
   const handleRename = (sessionId) => {
     const session = sessions.find((s) => s.sessionId === sessionId);
@@ -123,6 +156,40 @@ const Sidebar = ({ user, onLogout }) => {
           + New Chat
         </button>
 
+        {/* Search Box */}
+        <div className="search-box">
+          <input
+            type="text"
+            placeholder="Search conversations..."
+            value={searchQuery}
+            onChange={(e) => handleSearch(e.target.value)}
+            className="search-input"
+          />
+          {searchQuery && (
+            <button
+              onClick={clearSearch}
+              className="clear-search-btn"
+              title="Clear search"
+            >
+              ✕
+            </button>
+          )}
+          {isSearching && <span className="search-loading">🔍</span>}
+        </div>
+
+        {/* Navigation Links */}
+        <div className="sidebar-nav">
+          <button onClick={() => navigate("/projects")} className="nav-btn">
+            📁 Projects
+          </button>
+          <button
+            onClick={() => navigate("/public-sessions")}
+            className="nav-btn"
+          >
+            🌐 Public Sessions
+          </button>
+        </div>
+
         {/* Status Filter */}
         <div className="status-filter">
           <select
@@ -204,7 +271,9 @@ const Sidebar = ({ user, onLogout }) => {
               fontSize: "14px",
             }}
           >
-            {statusFilter === "ALL"
+            {searchQuery
+              ? "No conversations found matching your search."
+              : statusFilter === "ALL"
               ? "No conversations yet. Start a new chat!"
               : `No ${statusFilter.toLowerCase()} conversations.`}
           </div>

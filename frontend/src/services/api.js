@@ -190,6 +190,13 @@ export const sessionAPI = {
   pauseSession: (sessionId) => api.post(`/api/v1/sessions/${sessionId}/pause`),
   activateSession: (sessionId) =>
     api.post(`/api/v1/sessions/${sessionId}/activate`),
+  searchSessions: (query) =>
+    api.get("/api/v1/sessions/search", { params: { q: query } }),
+  toggleVisibility: (sessionId) =>
+    api.patch(`/api/v1/sessions/${sessionId}/visibility`),
+  getPublicSessions: () => api.get("/api/v1/sessions/public"),
+  copyPublicSession: (sessionId) =>
+    api.post(`/api/v1/sessions/public/${sessionId}/copy`),
 };
 
 // Message API
@@ -211,6 +218,36 @@ export const profileAPI = {
     api.post("/api/v1/user/profile/change-password", data),
   deactivateAccount: () => api.post("/api/v1/user/profile/deactivate"),
   reactivateAccount: () => api.post("/api/v1/user/profile/reactivate"),
+};
+
+// Project API
+export const projectAPI = {
+  getProjects: (
+    page = 0,
+    size = 10,
+    archived = null,
+    sortBy = "createdAt",
+    sortDirection = "desc"
+  ) => {
+    const params = { page, size, sortBy, sortDirection };
+    if (archived !== null) params.archived = archived;
+    return api.get("/api/v1/projects", { params });
+  },
+  getProject: (projectId) => api.get(`/api/v1/projects/${projectId}`),
+  createProject: (data) => api.post("/api/v1/projects", data),
+  updateProject: (projectId, data) =>
+    api.put(`/api/v1/projects/${projectId}`, data),
+  deleteProject: (projectId) => api.delete(`/api/v1/projects/${projectId}`),
+  archiveProject: (projectId) =>
+    api.post(`/api/v1/projects/${projectId}/archive`),
+  unarchiveProject: (projectId) =>
+    api.post(`/api/v1/projects/${projectId}/unarchive`),
+  addSession: (projectId, sessionId) =>
+    api.post(`/api/v1/projects/${projectId}/sessions/${sessionId}`),
+  removeSession: (projectId, sessionId) =>
+    api.delete(`/api/v1/projects/${projectId}/sessions/${sessionId}`),
+  searchProjects: (query) =>
+    api.get("/api/v1/projects/search", { params: { q: query } }),
 };
 
 export default api;
