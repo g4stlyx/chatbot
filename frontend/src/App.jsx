@@ -29,6 +29,9 @@ import MessageManagementPage from "./pages/admin/MessageManagementPage";
 import AdminManagementPage from "./pages/admin/AdminManagementPage";
 import ActivityLogsPage from "./pages/admin/ActivityLogsPage";
 import TokenManagementPage from "./pages/admin/TokenManagementPage";
+import DatabaseBackupPage from "./pages/admin/DatabaseBackupPage";
+import PromptInjectionLogsPage from "./pages/admin/PromptInjectionLogsPage";
+import AuthErrorLogsPage from "./pages/admin/AuthErrorLogsPage";
 import AdminProfilePage from "./pages/admin/AdminProfilePage";
 import "./App.css";
 
@@ -104,6 +107,15 @@ function App() {
                 <Route path="admins" element={<AdminManagementPage />} />
                 <Route path="activity-logs" element={<ActivityLogsPage />} />
                 <Route path="tokens" element={<TokenManagementPage />} />
+                <Route
+                  path="prompt-injection-logs"
+                  element={<PromptInjectionLogsPage />}
+                />
+                <Route path="auth-error-logs" element={<AuthErrorLogsPage />} />
+                <Route
+                  path="database-backup"
+                  element={<DatabaseBackupPage />}
+                />
                 <Route path="profile" element={<AdminProfilePage />} />
               </Route>
             </Routes>

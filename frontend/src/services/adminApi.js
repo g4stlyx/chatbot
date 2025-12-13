@@ -288,4 +288,78 @@ export const adminTokenAPI = {
     adminApi.post(`/api/v1/admin/tokens/verification/${tokenId}/invalidate`),
 };
 
+// Database Backup API (Level 0 only)
+export const adminDatabaseBackupAPI = {
+  getStatus: () => adminApi.get("/api/v1/admin/database-backup/status"),
+  createBackup: () => adminApi.post("/api/v1/admin/database-backup/create"),
+};
+
+// Prompt Injection Logs API
+export const adminPromptInjectionAPI = {
+  getAllLogs: (params = {}) => {
+    const {
+      page = 0,
+      size = 20,
+      sortBy = "createdAt",
+      sortDirection = "desc",
+      userId,
+      severity,
+    } = params;
+    return adminApi.get("/api/v1/admin/prompt-injection-logs", {
+      params: {
+        page,
+        size,
+        sortBy,
+        sortDirection,
+        ...(userId && { userId }),
+        ...(severity && { severity }),
+      },
+    });
+  },
+  getLogById: (logId) =>
+    adminApi.get(`/api/v1/admin/prompt-injection-logs/${logId}`),
+  deleteLog: (logId) =>
+    adminApi.delete(`/api/v1/admin/prompt-injection-logs/${logId}`),
+  getStatistics: () =>
+    adminApi.get("/api/v1/admin/prompt-injection-logs/statistics"),
+};
+
+// Auth Error Logs API
+export const adminAuthErrorLogsAPI = {
+  getAllLogs: (params = {}) => {
+    const {
+      page = 0,
+      size = 20,
+      sortBy = "createdAt",
+      sortDirection = "desc",
+      userId,
+      errorType,
+      ipAddress,
+    } = params;
+    return adminApi.get("/api/v1/admin/auth-error-logs", {
+      params: {
+        page,
+        size,
+        sortBy,
+        sortDirection,
+        ...(userId && { userId }),
+        ...(errorType && { errorType }),
+        ...(ipAddress && { ipAddress }),
+      },
+    });
+  },
+  getLogById: (logId) => adminApi.get(`/api/v1/admin/auth-error-logs/${logId}`),
+  getLogsByUserId: (userId, page = 0, size = 20) =>
+    adminApi.get(`/api/v1/admin/auth-error-logs/user/${userId}`, {
+      params: { page, size },
+    }),
+  getLogsByIpAddress: (ipAddress, page = 0, size = 20) =>
+    adminApi.get(`/api/v1/admin/auth-error-logs/ip/${ipAddress}`, {
+      params: { page, size },
+    }),
+  deleteLog: (logId) =>
+    adminApi.delete(`/api/v1/admin/auth-error-logs/${logId}`),
+  getStatistics: () => adminApi.get("/api/v1/admin/auth-error-logs/statistics"),
+};
+
 export default adminApi;
