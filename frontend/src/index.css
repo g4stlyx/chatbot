@@ -22,7 +22,7 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: var(--bg-color);
+  background-color: #1f2937;
   color: var(--text-primary);
 }
 
@@ -33,6 +33,7 @@ code {
 
 #root {
   min-height: 100vh;
+  background-color: #1f2937;
 }
 
 button {
