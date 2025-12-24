@@ -238,9 +238,14 @@ const ProjectsPage = () => {
       <div className="projects-header">
         <div className="header-top">
           <h1>📁 My Projects</h1>
-          <button className="btn-primary" onClick={openCreateModal}>
-            + New Project
-          </button>
+          <div className="header-actions">
+            <button className="btn-back" onClick={() => navigate("/chat")}>
+              ← Back to Chat
+            </button>
+            <button className="btn-primary" onClick={openCreateModal}>
+              + New Project
+            </button>
+          </div>
         </div>
 
         <div className="projects-filters">
