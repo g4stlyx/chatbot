@@ -262,7 +262,7 @@ const ActivityLogsPage = () => {
                   logs.map((log) => (
                     <tr key={log.id}>
                       <td>{log.id}</td>
-                      <td>{formatDate(log.timestamp)}</td>
+                      <td>{formatDate(log.createdAt || log.timestamp)}</td>
                       <td>
                         {log.admin ? (
                           <div className="admin-info">
@@ -368,7 +368,9 @@ const ActivityLogsPage = () => {
               </div>
               <div className="detail-row">
                 <span className="detail-label">Timestamp:</span>
-                <span>{formatDate(selectedLog.timestamp)}</span>
+                <span>
+                  {formatDate(selectedLog.createdAt || selectedLog.timestamp)}
+                </span>
               </div>
               <div className="detail-row">
                 <span className="detail-label">Admin:</span>
@@ -412,7 +414,8 @@ const ActivityLogsPage = () => {
               <strong>Action:</strong> {selectedLog?.action}
               <br />
               <strong>Timestamp:</strong>{" "}
-              {selectedLog && formatDate(selectedLog.timestamp)}
+              {selectedLog &&
+                formatDate(selectedLog.createdAt || selectedLog.timestamp)}
             </div>
             <p className="warning">This action cannot be undone.</p>
             <div className="modal-actions">

@@ -107,7 +107,10 @@ const MessageManagementPage = () => {
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleString("tr-TR", {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "Invalid Date";
+    return date.toLocaleString("tr-TR", {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -254,7 +257,13 @@ const MessageManagementPage = () => {
                           <span className="flag-badge">No</span>
                         )}
                       </td>
-                      <td>{formatDate(message.createdAt)}</td>
+                      <td>
+                        {formatDate(
+                          message.createdAt ||
+                            message.timestamp ||
+                            message.created_at
+                        )}
+                      </td>
                       <td>
                         <div className="action-buttons">
                           <button
@@ -369,7 +378,13 @@ const MessageManagementPage = () => {
               </div>
               <div className="detail-row">
                 <span className="detail-label">Created:</span>
-                <span>{formatDate(selectedMessage.createdAt)}</span>
+                <span>
+                  {formatDate(
+                    selectedMessage.createdAt ||
+                      selectedMessage.timestamp ||
+                      selectedMessage.created_at
+                  )}
+                </span>
               </div>
               <div className="detail-row full-width">
                 <span className="detail-label">Content:</span>

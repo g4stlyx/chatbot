@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAdmin } from "../../context/AdminContext";
 import { adminProfileAPI, admin2FAAPI } from "../../services/adminApi";
+import { QRCodeSVG } from "qrcode.react";
 import "./AdminProfilePage.css";
 
 const AdminProfilePage = () => {
@@ -84,7 +85,9 @@ const AdminProfilePage = () => {
       setSuccess("Profil başarıyla güncellendi");
       setIsEditingProfile(false);
     } catch (err) {
-      setError(err.response?.data?.message || "Profil güncellenirken hata oluştu");
+      setError(
+        err.response?.data?.message || "Profil güncellenirken hata oluştu"
+      );
     } finally {
       setLoading(false);
     }
@@ -119,10 +122,16 @@ const AdminProfilePage = () => {
         newPassword: passwordData.newPassword,
       });
       setSuccess("Şifre başarıyla değiştirildi");
-      setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      setPasswordData({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
       setIsChangingPassword(false);
     } catch (err) {
-      setError(err.response?.data?.message || "Şifre değiştirilirken hata oluştu");
+      setError(
+        err.response?.data?.message || "Şifre değiştirilirken hata oluştu"
+      );
     } finally {
       setLoading(false);
     }
@@ -138,7 +147,9 @@ const AdminProfilePage = () => {
       setTwoFASetup(response.data);
       setIsSettingUp2FA(true);
     } catch (err) {
-      setError(err.response?.data?.message || "2FA kurulumu başlatılırken hata oluştu");
+      setError(
+        err.response?.data?.message || "2FA kurulumu başlatılırken hata oluştu"
+      );
     } finally {
       setLoading(false);
     }
@@ -146,7 +157,7 @@ const AdminProfilePage = () => {
 
   const handleVerify2FA = async (e) => {
     e.preventDefault();
-    
+
     if (twoFACode.length !== 6) {
       setError("Lütfen 6 haneli doğrulama kodunu girin");
       return;
@@ -171,7 +182,7 @@ const AdminProfilePage = () => {
 
   const handleDisable2FA = async (e) => {
     e.preventDefault();
-    
+
     if (disableCode.length !== 6) {
       setError("Lütfen 6 haneli doğrulama kodunu girin");
       return;
@@ -226,7 +237,13 @@ const AdminProfilePage = () => {
 
       {error && (
         <div className="admin-alert admin-alert-error">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            width="20"
+            height="20"
+          >
             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
           </svg>
           <span>{error}</span>
@@ -235,7 +252,13 @@ const AdminProfilePage = () => {
 
       {success && (
         <div className="admin-alert admin-alert-success">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            width="20"
+            height="20"
+          >
             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
           </svg>
           <span>{success}</span>
@@ -247,14 +270,29 @@ const AdminProfilePage = () => {
         <section className="profile-section">
           <div className="section-header">
             <div className="section-title">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                width="24"
+                height="24"
+              >
                 <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
               </svg>
               <h2>Profil Bilgileri</h2>
             </div>
             {!isEditingProfile && (
-              <button className="edit-btn" onClick={() => setIsEditingProfile(true)}>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+              <button
+                className="edit-btn"
+                onClick={() => setIsEditingProfile(true)}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  width="16"
+                  height="16"
+                >
                   <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
                 </svg>
                 Düzenle
@@ -271,7 +309,9 @@ const AdminProfilePage = () => {
                   <span>{admin?.username?.charAt(0).toUpperCase()}</span>
                 )}
               </div>
-              <span className={`level-badge ${levelInfo.className}`}>{levelInfo.label}</span>
+              <span className={`level-badge ${levelInfo.className}`}>
+                {levelInfo.label}
+              </span>
             </div>
 
             {isEditingProfile ? (
@@ -309,7 +349,11 @@ const AdminProfilePage = () => {
                   />
                 </div>
                 <div className="form-actions">
-                  <button type="button" className="cancel-btn" onClick={() => setIsEditingProfile(false)}>
+                  <button
+                    type="button"
+                    className="cancel-btn"
+                    onClick={() => setIsEditingProfile(false)}
+                  >
                     İptal
                   </button>
                   <button type="submit" className="save-btn" disabled={loading}>
@@ -327,13 +371,17 @@ const AdminProfilePage = () => {
                   <span className="detail-label">Ad Soyad</span>
                   <span className="detail-value">
                     {admin?.firstName || admin?.lastName
-                      ? `${admin?.firstName || ""} ${admin?.lastName || ""}`.trim()
+                      ? `${admin?.firstName || ""} ${
+                          admin?.lastName || ""
+                        }`.trim()
                       : "Belirtilmemiş"}
                   </span>
                 </div>
                 <div className="detail-item">
                   <span className="detail-label">E-posta</span>
-                  <span className="detail-value">{admin?.email || "Belirtilmemiş"}</span>
+                  <span className="detail-value">
+                    {admin?.email || "Belirtilmemiş"}
+                  </span>
                 </div>
                 <div className="detail-item">
                   <span className="detail-label">Kayıt Tarihi</span>
@@ -352,13 +400,27 @@ const AdminProfilePage = () => {
         <section className="profile-section security-section">
           <div className="section-header">
             <div className="section-title">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                width="24"
+                height="24"
+              >
                 <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z" />
               </svg>
               <h2>İki Faktörlü Doğrulama (2FA)</h2>
             </div>
-            <div className={`status-badge ${twoFAStatus.enabled ? "enabled" : "disabled"}`}>
-              {twoFAStatus.loading ? "Yükleniyor..." : twoFAStatus.enabled ? "Aktif" : "Pasif"}
+            <div
+              className={`status-badge ${
+                twoFAStatus.enabled ? "enabled" : "disabled"
+              }`}
+            >
+              {twoFAStatus.loading
+                ? "Yükleniyor..."
+                : twoFAStatus.enabled
+                ? "Aktif"
+                : "Pasif"}
             </div>
           </div>
 
@@ -374,17 +436,29 @@ const AdminProfilePage = () => {
                 <div className="setup-instructions">
                   <h3>2FA Kurulumu</h3>
                   <p>
-                    1. Google Authenticator, Microsoft Authenticator veya benzeri bir uygulama indirin.
+                    1. Google Authenticator, Microsoft Authenticator veya
+                    benzeri bir uygulama indirin.
                   </p>
-                  <p>2. Aşağıdaki QR kodu tarayın veya kodu manuel olarak girin.</p>
+                  <p>
+                    2. Aşağıdaki QR kodu tarayın veya kodu manuel olarak girin.
+                  </p>
                 </div>
 
                 <div className="qr-section">
-                  {twoFASetup.qrCode && (
-                    <div className="qr-code">
+                  <div className="qr-code">
+                    {twoFASetup.qrCodeUrl || twoFASetup.otpAuthUrl ? (
+                      <QRCodeSVG
+                        value={twoFASetup.qrCodeUrl || twoFASetup.otpAuthUrl}
+                        size={200}
+                        level="M"
+                        includeMargin={true}
+                      />
+                    ) : twoFASetup.qrCode ? (
                       <img src={twoFASetup.qrCode} alt="2FA QR Code" />
-                    </div>
-                  )}
+                    ) : (
+                      <p>QR kod yüklenemedi</p>
+                    )}
+                  </div>
                   <div className="secret-key">
                     <span className="key-label">Manuel Giriş Kodu:</span>
                     <code className="key-value">{twoFASetup.secret}</code>
@@ -397,19 +471,33 @@ const AdminProfilePage = () => {
                     <input
                       type="text"
                       value={twoFACode}
-                      onChange={(e) => setTwoFACode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                      onChange={(e) =>
+                        setTwoFACode(
+                          e.target.value.replace(/\D/g, "").slice(0, 6)
+                        )
+                      }
                       placeholder="000000"
                       maxLength={6}
                       className="code-input"
                       autoFocus
                     />
-                    <span className="input-hint">Uygulamadaki 6 haneli kodu girin</span>
+                    <span className="input-hint">
+                      Uygulamadaki 6 haneli kodu girin
+                    </span>
                   </div>
                   <div className="form-actions">
-                    <button type="button" className="cancel-btn" onClick={cancel2FASetup}>
+                    <button
+                      type="button"
+                      className="cancel-btn"
+                      onClick={cancel2FASetup}
+                    >
                       İptal
                     </button>
-                    <button type="submit" className="save-btn" disabled={loading || twoFACode.length !== 6}>
+                    <button
+                      type="submit"
+                      className="save-btn"
+                      disabled={loading || twoFACode.length !== 6}
+                    >
                       {loading ? "Doğrulanıyor..." : "Etkinleştir"}
                     </button>
                   </div>
@@ -419,12 +507,18 @@ const AdminProfilePage = () => {
               // 2FA Disable Flow
               <div className="two-fa-disable">
                 <div className="disable-warning">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    width="24"
+                    height="24"
+                  >
                     <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z" />
                   </svg>
                   <p>
-                    <strong>Uyarı:</strong> İki faktörlü doğrulamayı devre dışı bırakmak hesabınızın
-                    güvenliğini azaltır.
+                    <strong>Uyarı:</strong> İki faktörlü doğrulamayı devre dışı
+                    bırakmak hesabınızın güvenliğini azaltır.
                   </p>
                 </div>
 
@@ -434,19 +528,33 @@ const AdminProfilePage = () => {
                     <input
                       type="text"
                       value={disableCode}
-                      onChange={(e) => setDisableCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                      onChange={(e) =>
+                        setDisableCode(
+                          e.target.value.replace(/\D/g, "").slice(0, 6)
+                        )
+                      }
                       placeholder="000000"
                       maxLength={6}
                       className="code-input"
                       autoFocus
                     />
-                    <span className="input-hint">Devre dışı bırakmak için mevcut kodunuzu girin</span>
+                    <span className="input-hint">
+                      Devre dışı bırakmak için mevcut kodunuzu girin
+                    </span>
                   </div>
                   <div className="form-actions">
-                    <button type="button" className="cancel-btn" onClick={cancelDisable2FA}>
+                    <button
+                      type="button"
+                      className="cancel-btn"
+                      onClick={cancelDisable2FA}
+                    >
                       İptal
                     </button>
-                    <button type="submit" className="danger-btn" disabled={loading || disableCode.length !== 6}>
+                    <button
+                      type="submit"
+                      className="danger-btn"
+                      disabled={loading || disableCode.length !== 6}
+                    >
                       {loading ? "İşleniyor..." : "Devre Dışı Bırak"}
                     </button>
                   </div>
@@ -458,7 +566,13 @@ const AdminProfilePage = () => {
                 {twoFAStatus.enabled ? (
                   <>
                     <div className="status-info success">
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="48" height="48">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                        width="48"
+                        height="48"
+                      >
                         <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z" />
                       </svg>
                       <div className="status-text">
@@ -466,8 +580,17 @@ const AdminProfilePage = () => {
                         <p>Hesabınız iki faktörlü doğrulama ile korunuyor.</p>
                       </div>
                     </div>
-                    <button className="danger-btn" onClick={() => setIsDisabling2FA(true)}>
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+                    <button
+                      className="danger-btn"
+                      onClick={() => setIsDisabling2FA(true)}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                        width="16"
+                        height="16"
+                      >
                         <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
                       </svg>
                       Devre Dışı Bırak
@@ -476,16 +599,35 @@ const AdminProfilePage = () => {
                 ) : (
                   <>
                     <div className="status-info warning">
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="48" height="48">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                        width="48"
+                        height="48"
+                      >
                         <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z" />
                       </svg>
                       <div className="status-text">
                         <h4>2FA Pasif</h4>
-                        <p>Hesabınızı daha güvenli hale getirmek için iki faktörlü doğrulamayı etkinleştirin.</p>
+                        <p>
+                          Hesabınızı daha güvenli hale getirmek için iki
+                          faktörlü doğrulamayı etkinleştirin.
+                        </p>
                       </div>
                     </div>
-                    <button className="primary-btn" onClick={handleSetup2FA} disabled={loading}>
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+                    <button
+                      className="primary-btn"
+                      onClick={handleSetup2FA}
+                      disabled={loading}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                        width="16"
+                        height="16"
+                      >
                         <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
                       </svg>
                       {loading ? "Yükleniyor..." : "2FA Etkinleştir"}
@@ -501,14 +643,29 @@ const AdminProfilePage = () => {
         <section className="profile-section">
           <div className="section-header">
             <div className="section-title">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                width="24"
+                height="24"
+              >
                 <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
               </svg>
               <h2>Şifre Değiştir</h2>
             </div>
             {!isChangingPassword && (
-              <button className="edit-btn" onClick={() => setIsChangingPassword(true)}>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+              <button
+                className="edit-btn"
+                onClick={() => setIsChangingPassword(true)}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  width="16"
+                  height="16"
+                >
                   <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
                 </svg>
                 Değiştir
@@ -561,7 +718,11 @@ const AdminProfilePage = () => {
                   className="cancel-btn"
                   onClick={() => {
                     setIsChangingPassword(false);
-                    setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
+                    setPasswordData({
+                      currentPassword: "",
+                      newPassword: "",
+                      confirmPassword: "",
+                    });
                   }}
                 >
                   İptal
@@ -573,7 +734,10 @@ const AdminProfilePage = () => {
             </form>
           ) : (
             <div className="password-info">
-              <p>Hesabınızın güvenliği için şifrenizi düzenli olarak değiştirmenizi öneririz.</p>
+              <p>
+                Hesabınızın güvenliği için şifrenizi düzenli olarak
+                değiştirmenizi öneririz.
+              </p>
             </div>
           )}
         </section>

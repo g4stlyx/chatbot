@@ -561,7 +561,11 @@ const PromptInjectionLogsPage = () => {
               <div className="detail-section">
                 <h3>Orijinal Mesaj</h3>
                 <div className="code-block">
-                  {selectedLog.originalMessage || "N/A"}
+                  {selectedLog.originalMessage ||
+                    selectedLog.message ||
+                    selectedLog.userMessage ||
+                    selectedLog.content ||
+                    "N/A"}
                 </div>
               </div>
 
