@@ -66,7 +66,9 @@ const SessionActions = ({
 
   const handleToggleVisibility = async () => {
     try {
-      await sessionAPI.toggleVisibility(session.sessionId);
+      // Mevcut durumun tersini gönder (toggle)
+      const newVisibility = !session.isPublic;
+      await sessionAPI.toggleVisibility(session.sessionId, newVisibility);
       setShowMenu(false);
       if (onVisibilityToggle) {
         onVisibilityToggle(session.sessionId);
