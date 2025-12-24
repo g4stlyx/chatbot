@@ -3,7 +3,7 @@
   max-width: 1400px;
   margin: 0 auto;
   min-height: 100vh;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  background: #1f2937;
 }
 
 .projects-header {
@@ -15,6 +15,12 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1.5rem;
+}
+
+.header-actions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
 }
 
 .header-top h1 {
@@ -66,6 +72,23 @@
 
 .search-box button:hover {
   background: var(--primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.btn-back {
+  padding: 0.75rem 1.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: #fff;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-back:hover {
+  background: rgba(255, 255, 255, 0.2);
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
