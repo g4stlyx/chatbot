@@ -154,16 +154,14 @@
 }
 
 .code-animation-container {
-  background: rgba(0, 0, 0, 0.25);
-  padding: 30px;
-  border-radius: 12px;
-  font-family: "Consolas", "Monaco", "Courier New", monospace;
-  text-align: left;
-  min-height: 200px;
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
 }
 
 .code-line {
@@ -220,12 +218,21 @@
   border-radius: 8px;
   font-size: 15px;
   transition: all 0.2s;
+  color: #1f2937;
+  background-color: #f9fafb;
+}
+
+.form-group input::selection {
+  background-color: #667eea;
+  color: #ffffff;
 }
 
 .form-group input:focus {
   outline: none;
   border-color: #667eea;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  color: #1f2937;
+  background-color: #f9fafb;
 }
 
 .form-group input:disabled {
