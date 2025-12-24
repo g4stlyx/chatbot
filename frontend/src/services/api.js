@@ -192,8 +192,8 @@ export const sessionAPI = {
     api.post(`/api/v1/sessions/${sessionId}/activate`),
   searchSessions: (query) =>
     api.get("/api/v1/sessions/search", { params: { q: query } }),
-  toggleVisibility: (sessionId) =>
-    api.patch(`/api/v1/sessions/${sessionId}/visibility`),
+  toggleVisibility: (sessionId, isPublic) =>
+    api.patch(`/api/v1/sessions/${sessionId}/visibility`, { isPublic }),
   getPublicSessions: () => api.get("/api/v1/sessions/public"),
   copyPublicSession: (sessionId) =>
     api.post(`/api/v1/sessions/public/${sessionId}/copy`),
