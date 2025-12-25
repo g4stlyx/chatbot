@@ -63,7 +63,8 @@ const AuthErrorLogsPage = () => {
   const fetchStatistics = async () => {
     try {
       const response = await adminAuthErrorLogsAPI.getStatistics();
-      setStatistics(response.data);
+      const statsData = response.data?.data || response.data;
+      setStatistics(statsData);
     } catch (err) {
       console.error("İstatistikler yüklenemedi:", err);
     }
@@ -235,7 +236,9 @@ const AuthErrorLogsPage = () => {
             <div className="stat-content">
               <span className="stat-label">Şüpheli IP'ler</span>
               <span className="stat-value">
-                {statistics.suspiciousIps?.length || 0}
+                {statistics.suspiciousIps
+                  ? Object.keys(statistics.suspiciousIps).length
+                  : 0}
               </span>
             </div>
           </div>
@@ -255,7 +258,7 @@ const AuthErrorLogsPage = () => {
             <div className="stat-content">
               <span className="stat-label">401 Unauthorized</span>
               <span className="stat-value">
-                {statistics.errorTypeBreakdown?.UNAUTHORIZED_401 || 0}
+                {statistics.errorTypeCounts?.UNAUTHORIZED_401 || 0}
               </span>
             </div>
           </div>
@@ -273,9 +276,9 @@ const AuthErrorLogsPage = () => {
               </svg>
             </div>
             <div className="stat-content">
-              <span className="stat-label">403 Forbidden</span>
+              <span className="stat-label">Access Denied</span>
               <span className="stat-value">
-                {statistics.errorTypeBreakdown?.FORBIDDEN_403 || 0}
+                {statistics.errorTypeCounts?.ACCESS_DENIED || 0}
               </span>
             </div>
           </div>
