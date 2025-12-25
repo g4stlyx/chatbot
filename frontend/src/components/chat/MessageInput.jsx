@@ -48,15 +48,18 @@ const MessageInput = ({ onStreamingChange }) => {
           updateMessage(assistantMsgId, (prev) => ({
             ...prev,
             content: prev.content + chunk,
+            isStreaming: true, // Explicitly keep streaming flag during updates
           }));
         }
       );
 
-      // Mark streaming as complete
-      updateMessage(assistantMsgId, (prev) => ({
-        ...prev,
-        isStreaming: false,
-      }));
+      // Mark streaming as complete - use setTimeout to ensure it happens after last chunk update
+      setTimeout(() => {
+        updateMessage(assistantMsgId, (prev) => ({
+          ...prev,
+          isStreaming: false,
+        }));
+      }, 0);
 
       // Refresh sessions list to show new session if created
       if (!currentSession || response.isNewSession) {
